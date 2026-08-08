@@ -92,6 +92,27 @@
       pointer-events: none; z-index: 0;
       animation: glowPulse 10s ease-in-out infinite reverse;
     }
+    #bgFloat {
+      position: fixed; inset: 0; overflow: hidden;
+      pointer-events: none; z-index: 0;
+    }
+    .bg-float-item {
+      position: absolute;
+      border-radius: 50%;
+      background-image: url('./fon.png');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.07;
+      filter: blur(0.3px);
+      animation: floatBg linear infinite;
+    }
+    @keyframes floatBg {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(12px, -18px) rotate(8deg); }
+      50% { transform: translate(-8px, -32px) rotate(-6deg); }
+      75% { transform: translate(-14px, -12px) rotate(4deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
     @keyframes glowPulse {
       0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
       50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
@@ -398,32 +419,66 @@
 
     .podium {
       display: flex; align-items: flex-end; justify-content: center;
-      gap: 10px; margin: 28px 0; min-height: 210px;
+      gap: 12px; margin: 28px 0; min-height: 220px;
     }
-    .podium-item { text-align: center; flex: 1; max-width: 110px; animation: fadeInScale 0.5s ease-out both; }
+    .podium-item {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; flex: 1; max-width: 110px;
+      animation: fadeInScale 0.5s ease-out both;
+    }
     .podium-item.first { animation-delay: 0.1s; }
     .podium-item.second { animation-delay: 0s; }
     .podium-item.third { animation-delay: 0.2s; }
-    .podium-item .ava {
-      width: 58px; height: 58px; border-radius: 50%;
-      margin: 0 auto 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 20px;
-      background: var(--gradient-primary);
+    .podium-item .avatar { margin: 0 auto; flex-shrink: 0; }
+    .podium-name {
+      font-size: 12px; font-weight: 700; margin: 8px 0 4px;
+      width: 100%; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .podium-item.first .ava {
-      width: 76px; height: 76px; font-size: 28px;
-      box-shadow: 0 0 28px rgba(255, 215, 0, 0.5);
-      animation: floatStar 3s ease-in-out infinite;
+    .podium-stats {
+      font-size: 11px; color: var(--muted);
+      width: 100%; text-align: center;
     }
     .podium-bar {
+      width: 100%;
       border-radius: 12px 12px 0 0; padding: 10px 4px;
       font-size: 15px; font-weight: 800; margin-top: 8px;
       display: flex; align-items: center; justify-content: center;
     }
     .podium-item.first .podium-bar { background: linear-gradient(180deg, var(--gold), #b8860b); height: 100px; color: #1a1a1a; }
+    .podium-item.first .avatar {
+      box-shadow: 0 0 28px rgba(255, 215, 0, 0.5);
+      animation: floatStar 3s ease-in-out infinite;
+    }
     .podium-item.second .podium-bar { background: linear-gradient(180deg, var(--silver), #888); height: 72px; color: #1a1a1a; }
     .podium-item.third .podium-bar { background: linear-gradient(180deg, var(--bronze), #8b4513); height: 52px; color: #fff; }
+
+    .history-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 0; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      transition: opacity 0.2s;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-item:active { opacity: 0.7; }
+    .history-meta { flex: 1; min-width: 0; }
+    .history-title { font-size: 14px; font-weight: 600; }
+    .history-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .history-price { font-size: 14px; font-weight: 700; color: var(--accent2); white-space: nowrap; }
+    .purchase-detail-card { text-align: left; }
+    .purchase-detail-row {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 10px 0; font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .purchase-detail-row:last-child { border-bottom: none; }
+    .purchase-detail-row span:first-child { color: var(--muted); }
+    .badge-review {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; padding: 4px 10px;
+      border-radius: 12px; background: rgba(52, 199, 89, 0.15); color: #34c759;
+    }
+    .badge-review.pending { background: rgba(255, 159, 10, 0.15); color: #ff9f0a; }
 
     .top-list-item {
       display: flex; align-items: center; gap: 12px;
@@ -486,6 +541,7 @@
   </style>
 </head>
 <body>
+  <div id="bgFloat" aria-hidden="true"></div>
   <div class="bg-glow"></div>
   <div class="bg-glow-2"></div>
 
@@ -566,8 +622,29 @@
       </div>
     </div>
     <div class="divider"></div>
+    <button class="btn btn-glass" id="btnUserPurchases" onclick="showUserPurchases()"></button>
+    <button class="btn btn-glass" id="btnUserTransactions" onclick="showUserTransactions()"></button>
     <button class="btn btn-glass" id="btnUserReviews" onclick="showUserReviews()"></button>
     <button class="btn btn-glass" id="btnUserDownloads" onclick="showUserDownloads()"></button>
+  </div>
+
+  <div id="page-user-purchases" class="page">
+    <button class="btn btn-glass btn-back" id="btnBackProfile3" onclick="showPage('profile')"></button>
+    <div class="page-head"><h2>История покупок</h2></div>
+    <div id="userPurchasesList"></div>
+  </div>
+
+  <div id="page-purchase-detail" class="page">
+    <button class="btn btn-glass btn-back" id="btnBackPurchases" onclick="showPage('user-purchases')"></button>
+    <div class="page-head"><h2>Детали покупки</h2></div>
+    <div class="glass-card purchase-detail-card" id="purchaseDetailCard"></div>
+    <button class="btn" id="btnLeaveReview" style="display:none" onclick="openReviewForSelected()"></button>
+  </div>
+
+  <div id="page-user-transactions" class="page">
+    <button class="btn btn-glass btn-back" id="btnBackProfile4" onclick="showPage('profile')"></button>
+    <div class="page-head"><h2>История транзакций</h2></div>
+    <div id="userTransactionsList"></div>
   </div>
 
   <div id="page-top" class="page">
@@ -614,10 +691,12 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6dXZlenJ6Z3hveW5rdmZzd2J2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxNjkwNTMsImV4cCI6MjEwMTc0NTA1M30.c196NVVvzlNJE63sNBfNDAgcdNtfLwqs5kciTwIk8IE';
     const LOADER_LOTTIE = 'https://assets2.lottiefiles.com/packages/lf20_usmfx6bp.json';
     const DEFAULT_STORE_AVATAR = 'https://i.postimg.cc/sx9fLX9V/photo-2026-08-06-11-50-26.jpg';
+    const DEFAULT_USER_AVATAR = 'https://i.postimg.cc/2j4XtvvK/1dece2c8357bdd7cee3b15036344faf5.jpg';
 
     let recentCarouselTimer = null;
     let recentCarouselIndex = 0;
     let recentCarouselItems = [];
+    let selectedPurchase = null;
 
     const ICONS = {
       home: '<path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z"/>',
@@ -636,6 +715,8 @@
       document: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
       users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
       message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      history: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8"/><path d="M16 12H8"/><path d="M12 16H8"/>',
     };
 
     function icon(name, cls = 'ico') {
@@ -682,11 +763,17 @@
     document.getElementById('soonTitle').innerHTML = icon('book', 'ico ico-lg') + '<span>Soon</span>';
     document.getElementById('modalTitle').innerHTML = icon('files', 'ico') + '<span>Файлы выданы</span>';
     setBtnIcon('btnReviews', 'star', 'Посмотреть отзывы');
+    setBtnIcon('btnUserPurchases', 'cart', 'История покупок');
+    setBtnIcon('btnUserTransactions', 'wallet', 'История транзакций');
     setBtnIcon('btnUserReviews', 'star', 'Твои отзывы');
     setBtnIcon('btnUserDownloads', 'download', 'Скачанные файлы');
     setBtnIcon('btnBackHome', 'chevronLeft', 'Назад');
     setBtnIcon('btnBackProfile1', 'chevronLeft', 'Назад');
     setBtnIcon('btnBackProfile2', 'chevronLeft', 'Назад');
+    setBtnIcon('btnBackProfile3', 'chevronLeft', 'Назад');
+    setBtnIcon('btnBackProfile4', 'chevronLeft', 'Назад');
+    setBtnIcon('btnBackPurchases', 'chevronLeft', 'Назад');
+    setBtnIcon('btnLeaveReview', 'star', 'Оставить отзыв');
     setNavItem('nav-home', 'home', 'Главная');
     setNavItem('nav-files', 'files', 'Файлы');
     setNavItem('nav-instructions', 'book', 'Инструкция');
@@ -727,20 +814,42 @@
       return `${Math.floor(hrs / 24)} дн. назад`;
     }
 
+    function initBgFloat() {
+      const container = document.getElementById('bgFloat');
+      if (!container) return;
+      const count = 10;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'bg-float-item';
+        const size = 22 + Math.random() * 20;
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = (Math.random() * 100) + '%';
+        el.style.top = (Math.random() * 100) + '%';
+        el.style.animationDuration = (18 + Math.random() * 14) + 's';
+        el.style.animationDelay = (-Math.random() * 20) + 's';
+        container.appendChild(el);
+      }
+    }
+
+    function purchaseLabel(p) {
+      const sub = p.subcategory_name || p.category_name;
+      const prod = p.product_name || '—';
+      if (sub) return `${sub} · ${prod}`;
+      return prod;
+    }
+
     function avatarUrl(user) {
       if (user.avatar_url) return user.avatar_url;
-      if (user.username) return `https://t.me/i/userpic/320/${user.username.replace('@','')}.jpg`;
-      return null;
+      if (user.username) return `https://t.me/i/userpic/320/${String(user.username).replace('@','')}.jpg`;
+      return DEFAULT_USER_AVATAR;
     }
 
     function avatarHtml(user, sizeClass = '') {
       const letter = avatarLetter(user.username || user.first_name);
       const url = avatarUrl(user);
       const cls = 'avatar' + (sizeClass ? ' ' + sizeClass : '');
-      if (url) {
-        return `<div class="${cls}"><img src="${url}" alt="" onerror="this.parentElement.textContent='${letter}'"></div>`;
-      }
-      return `<div class="${cls}">${letter}</div>`;
+      return `<div class="${cls}"><img src="${url}" alt="" onerror="this.onerror=null;this.src='${DEFAULT_USER_AVATAR}'"></div>`;
     }
 
     function userLabel(u) {
@@ -814,7 +923,7 @@
               ${avatarHtml(p)}
               <div class="recent-info">
                 <div class="recent-name">${userLabel(p)}</div>
-                <div class="recent-product">${p.product_name || '—'}</div>
+                <div class="recent-product">${purchaseLabel(p)}</div>
                 <div class="recent-time">${timeAgo(p.created_at)}</div>
               </div>
             </div>
@@ -889,8 +998,8 @@
         const sizeCls = cls === 'first' ? 'xl' : 'lg';
         return `<div class="podium-item ${cls}">
           ${avatarHtml(b, sizeCls)}
-          <div style="font-size:12px;font-weight:700;margin-bottom:4px;margin-top:8px">${name}</div>
-          <div style="font-size:11px;color:var(--muted)">${b.count} шт · ${Math.round(b.sum)}₽</div>
+          <div class="podium-name">${name}</div>
+          <div class="podium-stats">${b.count} шт · ${Math.round(b.sum)}₽</div>
           <div class="podium-bar">${places[idx]}</div>
         </div>`;
       }).join('');
@@ -928,11 +1037,8 @@
       document.getElementById('profileName').textContent = name;
       document.getElementById('profileTag').textContent = tgUser.username ? '@' + tgUser.username : 'без username';
       const avEl = document.getElementById('profileAvatar');
-      if (tgUser.photo_url) {
-        avEl.innerHTML = `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover" alt="" />`;
-      } else {
-        avEl.textContent = avatarLetter(tgUser.first_name);
-      }
+      const profilePhoto = tgUser.photo_url || DEFAULT_USER_AVATAR;
+      avEl.innerHTML = `<img src="${profilePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" onerror="this.onerror=null;this.src='${DEFAULT_USER_AVATAR}'" />`;
       const users = await sbFetch('store_users', `telegram_id=eq.${tgUser.id}&select=*`);
       const u = users[0];
       if (u) {
@@ -951,6 +1057,97 @@
           <div style="font-weight:700;margin:8px 0 4px">${r.username ? '@'+r.username : 'Покупатель'}</div>
           <div style="font-size:13px;color:var(--muted)">${r.product_name || ''}</div>
           <div style="margin-top:10px;font-size:14px;line-height:1.5">${r.text || 'Без комментария'}</div>
+        </div>
+      `).join('');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      return new Date(dateStr).toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    }
+
+    function topupMethodLabel(method) {
+      const map = { cryptobot: 'CryptoBot', platega: 'Platega', manual: 'Вручную', unknown: 'Пополнение' };
+      return map[method] || method || 'Пополнение';
+    }
+
+    function topupStatusLabel(status) {
+      const map = { paid: 'Успешно', pending: 'Ожидание', expired: 'Истекло' };
+      return map[status] || status || '—';
+    }
+
+    async function showUserPurchases() {
+      showPage('user-purchases');
+      const el = document.getElementById('userPurchasesList');
+      if (!tgUser) { el.innerHTML = emptyState('user', 'Нужен Telegram'); return; }
+      el.innerHTML = loadingHtml();
+      const items = await sbFetch('store_purchases', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=50&select=*`);
+      if (!items.length) { el.innerHTML = emptyState('cart', 'Покупок пока нет'); return; }
+      el.innerHTML = items.map(p => `
+        <div class="history-item" onclick="showPurchaseDetail(${p.purchase_id})">
+          <span class="ico-box">${icon('package')}</span>
+          <div class="history-meta">
+            <div class="history-title">${purchaseLabel(p)}</div>
+            <div class="history-sub">Заказ #${p.order_number || p.purchase_id} · ${timeAgo(p.created_at)}</div>
+          </div>
+          <div class="history-price">${(p.price ?? 0).toFixed(0)}₽</div>
+        </div>
+      `).join('');
+    }
+
+    function showPurchaseDetail(purchaseId) {
+      showPage('purchase-detail');
+      const card = document.getElementById('purchaseDetailCard');
+      const reviewBtn = document.getElementById('btnLeaveReview');
+      card.innerHTML = loadingHtml();
+      reviewBtn.style.display = 'none';
+      selectedPurchase = null;
+
+      sbFetch('store_purchases', `purchase_id=eq.${purchaseId}&select=*`).then(items => {
+        const p = items[0];
+        if (!p) {
+          card.innerHTML = emptyState('cart', 'Покупка не найдена');
+          return;
+        }
+        selectedPurchase = p;
+        const reviewed = p.review_left === true || p.review_left === 'true';
+        card.innerHTML = `
+          <div class="purchase-detail-row"><span>Товар</span><span style="text-align:right;font-weight:600">${p.product_name || '—'}</span></div>
+          ${p.subcategory_name ? `<div class="purchase-detail-row"><span>Категория</span><span style="text-align:right">${p.subcategory_name}</span></div>` : ''}
+          <div class="purchase-detail-row"><span>Заказ</span><span>#${p.order_number || p.purchase_id}</span></div>
+          <div class="purchase-detail-row"><span>Сумма</span><span style="font-weight:700;color:var(--accent2)">${(p.price ?? 0).toFixed(2)} ₽</span></div>
+          <div class="purchase-detail-row"><span>Дата</span><span>${formatDate(p.created_at)}</span></div>
+          <div class="purchase-detail-row"><span>Отзыв</span><span class="badge-review${reviewed ? '' : ' pending'}">${reviewed ? 'Оставлен' : 'Можно оставить'}</span></div>
+        `;
+        reviewBtn.style.display = reviewed ? 'none' : 'flex';
+      });
+    }
+
+    function openReviewForSelected() {
+      if (!selectedPurchase || !botInfo.username) return;
+      const link = `https://t.me/${botInfo.username}?start=review_${selectedPurchase.purchase_id}`;
+      if (tg?.openTelegramLink) tg.openTelegramLink(link);
+      else window.open(link, '_blank');
+    }
+
+    async function showUserTransactions() {
+      showPage('user-transactions');
+      const el = document.getElementById('userTransactionsList');
+      if (!tgUser) { el.innerHTML = emptyState('user', 'Нужен Telegram'); return; }
+      el.innerHTML = loadingHtml();
+      const items = await sbFetch('store_topups', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=50&select=*`);
+      if (!items.length) { el.innerHTML = emptyState('wallet', 'Транзакций пока нет'); return; }
+      el.innerHTML = items.map(t => `
+        <div class="history-item" style="cursor:default">
+          <span class="ico-box green">${icon('wallet')}</span>
+          <div class="history-meta">
+            <div class="history-title">${topupMethodLabel(t.method)}</div>
+            <div class="history-sub">${topupStatusLabel(t.status)} · ${formatDate(t.created_at)}</div>
+          </div>
+          <div class="history-price" style="color:${t.status === 'paid' ? '#34c759' : 'var(--muted)'}">+${(t.amount_rub ?? 0).toFixed(0)}₽</div>
         </div>
       `).join('');
     }
@@ -998,6 +1195,7 @@
     }
 
     async function init() {
+      initBgFloat();
       try {
         await loadBotInfo();
         await Promise.all([loadRecentPurchases(), loadStats(), loadFileCategories(), loadProfile(), loadAllReviews()]);
