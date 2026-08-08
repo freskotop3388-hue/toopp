@@ -32,7 +32,7 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding-bottom: 110px;
+      padding-bottom: 120px;
       overflow-x: hidden;
     }
 
@@ -198,7 +198,32 @@
       display: flex; align-items: center; justify-content: center;
       font-weight: 700; font-size: 16px; flex-shrink: 0;
       box-shadow: 0 4px 12px rgba(0, 152, 234, 0.3);
+      overflow: hidden;
     }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .avatar.lg { width: 58px; height: 58px; font-size: 20px; }
+    .avatar.xl { width: 76px; height: 76px; font-size: 28px; }
+    .avatar.md { width: 36px; height: 36px; font-size: 14px; }
+
+    .recent-carousel { position: relative; min-height: 72px; overflow: hidden; }
+    .recent-slide {
+      display: flex; align-items: center; gap: 14px;
+      opacity: 0; transform: translateX(16px);
+      position: absolute; inset: 0;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      pointer-events: none;
+    }
+    .recent-slide.active {
+      opacity: 1; transform: translateX(0);
+      position: relative; pointer-events: auto;
+    }
+    .recent-dots { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+    .recent-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); transition: all 0.3s;
+    }
+    .recent-dot.active { background: var(--accent2); width: 18px; border-radius: 3px; }
+
     .recent-info { flex: 1; min-width: 0; }
     .recent-name { font-weight: 600; font-size: 14px; }
     .recent-product { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -288,18 +313,18 @@
     .rating-big .score { font-size: 40px; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }
 
     .bottom-nav {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      width: calc(100% - 32px); max-width: 420px; height: 68px;
-      background: rgba(28, 28, 30, 0.75);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 32px;
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 24px); max-width: 440px; height: 82px;
+      background: rgba(22, 22, 26, 0.55);
+      backdrop-filter: blur(40px) saturate(200%);
+      -webkit-backdrop-filter: blur(40px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 36px;
       display: flex; justify-content: space-around; align-items: stretch;
       z-index: 9999;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.08);
-      padding: 0 6px;
-      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+      padding: 8px 10px;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom));
       transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
     }
     .bottom-nav.hidden-nav {
@@ -312,7 +337,7 @@
       background: none; border: none;
       color: #8e8e93; cursor: pointer;
       transition: color 0.3s;
-      font-family: inherit; position: relative; padding: 8px 2px;
+      font-family: inherit; position: relative; padding: 10px 2px;
     }
     .nav-item .nav-label {
       font-size: 9px; font-weight: 600; margin-top: 5px;
@@ -477,7 +502,7 @@
 
   <header class="store-header">
     <div class="header-left">
-      <img id="botAvatar" class="header-logo" src="" alt="" onerror="this.style.opacity='0.3'" />
+      <img id="botAvatar" class="header-logo" src="https://i.postimg.cc/sx9fLX9V/photo-2026-08-06-11-50-26.jpg" alt="Fresko Store" />
       <div class="header-title">
         <span id="storeName1">Fresko</span>
         <span id="storeName2">Store</span>
@@ -588,6 +613,11 @@
     const SUPABASE_URL = 'https://lzuvezrzgxoynkvfswbv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6dXZlenJ6Z3hveW5rdmZzd2J2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxNjkwNTMsImV4cCI6MjEwMTc0NTA1M30.c196NVVvzlNJE63sNBfNDAgcdNtfLwqs5kciTwIk8IE';
     const LOADER_LOTTIE = 'https://assets2.lottiefiles.com/packages/lf20_usmfx6bp.json';
+    const DEFAULT_STORE_AVATAR = 'https://i.postimg.cc/sx9fLX9V/photo-2026-08-06-11-50-26.jpg';
+
+    let recentCarouselTimer = null;
+    let recentCarouselIndex = 0;
+    let recentCarouselItems = [];
 
     const ICONS = {
       home: '<path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z"/>',
@@ -697,6 +727,22 @@
       return `${Math.floor(hrs / 24)} дн. назад`;
     }
 
+    function avatarUrl(user) {
+      if (user.avatar_url) return user.avatar_url;
+      if (user.username) return `https://t.me/i/userpic/320/${user.username.replace('@','')}.jpg`;
+      return null;
+    }
+
+    function avatarHtml(user, sizeClass = '') {
+      const letter = avatarLetter(user.username || user.first_name);
+      const url = avatarUrl(user);
+      const cls = 'avatar' + (sizeClass ? ' ' + sizeClass : '');
+      if (url) {
+        return `<div class="${cls}"><img src="${url}" alt="" onerror="this.parentElement.textContent='${letter}'"></div>`;
+      }
+      return `<div class="${cls}">${letter}</div>`;
+    }
+
     function userLabel(u) {
       if (u.username) return '@' + u.username;
       if (u.first_name) return u.first_name;
@@ -752,24 +798,44 @@
         const parts = name.split(' ');
         document.getElementById('storeName1').textContent = parts[0] || 'Fresko';
         document.getElementById('storeName2').textContent = parts.slice(1).join(' ') || 'Store';
-        if (botInfo.avatar_url) document.getElementById('botAvatar').src = botInfo.avatar_url;
+      }
+      document.getElementById('botAvatar').src = botInfo.avatar_url || DEFAULT_STORE_AVATAR;
+    }
+
+    function renderRecentCarousel(items) {
+      const el = document.getElementById('recentPurchases');
+      if (!items.length) { el.innerHTML = emptyState('cart', 'Пока нет покупок'); return; }
+      recentCarouselItems = items.slice(0, 7);
+      recentCarouselIndex = 0;
+      el.innerHTML = `
+        <div class="recent-carousel">
+          ${recentCarouselItems.map((p, i) => `
+            <div class="recent-slide${i === 0 ? ' active' : ''}">
+              ${avatarHtml(p)}
+              <div class="recent-info">
+                <div class="recent-name">${userLabel(p)}</div>
+                <div class="recent-product">${p.product_name || '—'}</div>
+                <div class="recent-time">${timeAgo(p.created_at)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="recent-dots">
+          ${recentCarouselItems.map((_, i) => `<div class="recent-dot${i === 0 ? ' active' : ''}"></div>`).join('')}
+        </div>`;
+      if (recentCarouselTimer) clearInterval(recentCarouselTimer);
+      if (recentCarouselItems.length > 1) {
+        recentCarouselTimer = setInterval(() => {
+          recentCarouselIndex = (recentCarouselIndex + 1) % recentCarouselItems.length;
+          document.querySelectorAll('.recent-slide').forEach((s, i) => s.classList.toggle('active', i === recentCarouselIndex));
+          document.querySelectorAll('.recent-dot').forEach((d, i) => d.classList.toggle('active', i === recentCarouselIndex));
+        }, 5000);
       }
     }
 
     async function loadRecentPurchases() {
-      const items = await sbFetch('store_purchases', 'order=created_at.desc&limit=8&select=*');
-      const el = document.getElementById('recentPurchases');
-      if (!items.length) { el.innerHTML = emptyState('cart', 'Пока нет покупок'); return; }
-      el.innerHTML = items.map((p, i) => `
-        <div class="recent-item" style="animation-delay:${i * 0.06}s">
-          <div class="avatar">${avatarLetter(p.username || p.first_name)}</div>
-          <div class="recent-info">
-            <div class="recent-name">${userLabel(p)}</div>
-            <div class="recent-product">${p.product_name || '—'}</div>
-            <div class="recent-time">${timeAgo(p.created_at)}</div>
-          </div>
-        </div>
-      `).join('');
+      const items = await sbFetch('store_purchases', 'order=created_at.desc&limit=7&select=*');
+      renderRecentCarousel(items);
     }
 
     async function loadStats() {
@@ -820,9 +886,10 @@
       podiumEl.innerHTML = ordered.map((b, idx) => {
         const cls = classes[idx];
         const name = b.username ? '@'+b.username : 'ID'+b.telegram_id;
+        const sizeCls = cls === 'first' ? 'xl' : 'lg';
         return `<div class="podium-item ${cls}">
-          <div class="ava">${avatarLetter(b.username)}</div>
-          <div style="font-size:12px;font-weight:700;margin-bottom:4px">${name}</div>
+          ${avatarHtml(b, sizeCls)}
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;margin-top:8px">${name}</div>
           <div style="font-size:11px;color:var(--muted)">${b.count} шт · ${Math.round(b.sum)}₽</div>
           <div class="podium-bar">${places[idx]}</div>
         </div>`;
@@ -830,7 +897,7 @@
       listEl.innerHTML = buyers.slice(3, 25).map((b, i) => `
         <div class="top-list-item" style="animation-delay:${i * 0.04}s">
           <span class="rank">${i + 4}</span>
-          <div class="avatar" style="width:36px;height:36px;font-size:14px">${avatarLetter(b.username)}</div>
+          ${avatarHtml(b, 'md')}
           <div style="flex:1;min-width:0">
             <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.username ? '@'+b.username : 'ID'+b.telegram_id}</div>
             <div style="font-size:12px;color:var(--muted)">${b.count} покупок · ${Math.round(b.sum)}₽</div>
@@ -909,14 +976,22 @@
       const el = document.getElementById('userDownloadsList');
       if (!tgUser) { el.innerHTML = emptyState('user', 'Нужен Telegram'); return; }
       el.innerHTML = loadingHtml();
-      const items = await sbFetch('store_file_downloads', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=50&select=*`);
+      const items = await sbFetch('store_file_downloads', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=100&select=*`);
       if (!items.length) { el.innerHTML = emptyState('download', 'Вы ещё не скачивали файлы'); return; }
-      el.innerHTML = items.map(d => `
+
+      const seen = new Map();
+      for (const d of items) {
+        const cat = d.category_name || 'Без категории';
+        if (!seen.has(cat)) seen.set(cat, d.created_at);
+      }
+      const categories = [...seen.entries()].sort((a, b) => new Date(b[1]) - new Date(a[1]));
+
+      el.innerHTML = categories.map(([cat, date]) => `
         <div class="top-list-item">
-          <span class="ico-box">${icon('document')}</span>
+          <span class="ico-box">${icon('files')}</span>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.file_name || 'Файл'}</div>
-            <div style="font-size:12px;color:var(--muted)">${d.category_name || ''} · ${timeAgo(d.created_at)}</div>
+            <div style="font-size:14px;font-weight:600">${cat}</div>
+            <div style="font-size:12px;color:var(--muted)">Скачано · ${timeAgo(date)}</div>
           </div>
         </div>
       `).join('');
