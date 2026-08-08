@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Fresko Store</title>
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --text: #ffffff;
+      --muted: #8e8e93;
+      --accent: #007AFF;
+      --accent2: #0098EA;
+      --gold: #FFD700;
+      --silver: #C0C0C0;
+      --bronze: #CD7F32;
+      --glass-bg: rgba(30, 30, 35, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --gradient-primary: linear-gradient(135deg, #0098EA, #007AFF);
+      --icon-size: 20px;
+      --icon-nav: 22px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { background: var(--bg); height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 110px;
+      overflow-x: hidden;
+    }
+
+    svg { display: block; flex-shrink: 0; }
+    .ico {
+      width: var(--icon-size);
+      height: var(--icon-size);
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .ico-nav { width: var(--icon-nav); height: var(--icon-nav); }
+    .ico-sm { width: 16px; height: 16px; }
+    .ico-lg { width: 24px; height: 24px; }
+    .ico-fill { fill: currentColor; stroke: none; }
+
+    .ico-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: rgba(0, 152, 234, 0.15);
+      color: var(--accent2);
+    }
+    .ico-box.gold { background: rgba(255, 215, 0, 0.12); color: var(--gold); }
+    .ico-box.purple { background: rgba(108, 92, 231, 0.15); color: #a29bfe; }
+    .ico-box.green { background: rgba(52, 199, 89, 0.15); color: #34c759; }
+
+    .row-center {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .row-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .bg-glow {
+      position: fixed; top: -15%; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(0, 152, 234, 0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: glowPulse 8s ease-in-out infinite;
+    }
+    .bg-glow-2 {
+      position: fixed; bottom: 10%; right: -20%;
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, rgba(108, 92, 231, 0.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: glowPulse 10s ease-in-out infinite reverse;
+    }
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+    }
+
+    #app-loader {
+      position: fixed; inset: 0; background: #000; z-index: 999999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    #app-loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-lottie { width: 120px; height: 120px; }
+    .loader-text { font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; }
+    .connection-line { display: flex; gap: 6px; margin-top: 4px; }
+    .connection-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #444;
+      animation: pulseDot 1.5s infinite;
+    }
+    .connection-dot:nth-child(2) { animation-delay: 0.2s; }
+    .connection-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulseDot {
+      0%, 100% { background: #444; transform: scale(1); }
+      50% { background: var(--accent2); transform: scale(1.3); box-shadow: 0 0 8px var(--accent2); }
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    .store-header {
+      position: sticky; top: 0; z-index: 50;
+      padding: 14px 20px 10px;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 44px; height: 44px; border-radius: 14px; object-fit: cover;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-soft);
+      animation: floatLogo 4s ease-in-out infinite;
+    }
+    @keyframes floatLogo {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .header-title { display: flex; flex-direction: column; line-height: 1.1; }
+    .header-title span {
+      font-size: 17px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .header-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 7px 12px;
+      font-size: 12px; font-weight: 700; color: var(--accent2);
+    }
+
+    .page { display: none; padding: 16px; position: relative; z-index: 1; }
+    .page.active { display: block; animation: fadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.99); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .page-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px; padding: 0 2px;
+    }
+    .page-head h2 {
+      font-size: 18px; font-weight: 800; letter-spacing: -0.3px;
+    }
+
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px; padding: 18px; margin-bottom: 14px;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.2s;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 700; margin-bottom: 14px;
+      color: rgba(255,255,255,0.92);
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .recent-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      animation: slideInItem 0.4s ease-out both;
+    }
+    .recent-item:last-child { border-bottom: none; }
+    @keyframes slideInItem {
+      from { opacity: 0; transform: translateX(-12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0, 152, 234, 0.3);
+    }
+    .recent-info { flex: 1; min-width: 0; }
+    .recent-name { font-weight: 600; font-size: 14px; }
+    .recent-product { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recent-time { color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin-bottom: 16px; padding: 0 4px; }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 15px 18px;
+      border: none; border-radius: 16px;
+      background: var(--gradient-primary);
+      color: white; font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-bottom: 12px;
+      box-shadow: 0 8px 24px rgba(0, 152, 234, 0.35);
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-glass {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      color: #fff; box-shadow: none;
+    }
+    .btn-back {
+      display: inline-flex; width: auto;
+      padding: 10px 16px; margin-bottom: 16px; font-size: 14px;
+    }
+
+    .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 18px 0; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 14px 8px; text-align: center;
+      animation: fadeInScale 0.4s ease-out both;
+    }
+    .stat-box:nth-child(2) { animation-delay: 0.08s; }
+    .stat-box:nth-child(3) { animation-delay: 0.16s; }
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .stat-num {
+      font-size: 24px; font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-label {
+      font-size: 10px; color: var(--muted); margin-top: 4px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+
+    .online-block {
+      text-align: center; margin: 20px 0; padding: 20px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 20px; border: 1px solid rgba(255,255,255,0.06);
+    }
+    .online-num { font-size: 36px; font-weight: 800; animation: countPop 0.5s ease-out; }
+    @keyframes countPop {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .online-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .top-file {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .top-file:last-child { border-bottom: none; }
+
+    .rating-big { text-align: center; }
+    .stars-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px; margin: 8px 0;
+      animation: floatStar 4s ease-in-out infinite;
+    }
+    .stars-row .ico { width: 28px; height: 28px; color: var(--gold); }
+  .stars-row .ico.empty { color: rgba(255,255,255,0.15); }
+    @keyframes floatStar {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .rating-big .score { font-size: 40px; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }
+
+    .bottom-nav {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 420px; height: 68px;
+      background: rgba(28, 28, 30, 0.75);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 32px;
+      display: flex; justify-content: space-around; align-items: stretch;
+      z-index: 9999;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+      padding: 0 6px;
+      padding-bottom: env(safe-area-inset-bottom);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
+    }
+    .bottom-nav.hidden-nav {
+      transform: translateX(-50%) translateY(120px);
+      opacity: 0; pointer-events: none;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; min-width: 0;
+      background: none; border: none;
+      color: #8e8e93; cursor: pointer;
+      transition: color 0.3s;
+      font-family: inherit; position: relative; padding: 8px 2px;
+    }
+    .nav-item .nav-label {
+      font-size: 9px; font-weight: 600; margin-top: 5px;
+      letter-spacing: 0.1px; line-height: 1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-item.active .ico-nav { transform: translateY(-1px); }
+    .nav-item.active::before {
+      content: ''; position: absolute; top: 4px;
+      width: 40px; height: 36px;
+      background: rgba(0, 122, 255, 0.14);
+      border-radius: 14px; z-index: -1;
+    }
+
+    .file-btn {
+      display: flex; align-items: center; gap: 14px;
+      width: 100%; padding: 16px 18px; margin-bottom: 10px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px; color: var(--text);
+      font-size: 15px; font-weight: 600; text-align: left;
+      cursor: pointer; font-family: inherit;
+      transition: transform 0.2s, background 0.2s;
+      box-shadow: var(--shadow-soft);
+    }
+    .file-btn:active { transform: scale(0.97); background: rgba(0, 152, 234, 0.12); }
+    .file-btn .ico-box { width: 40px; height: 40px; border-radius: 12px; }
+    .file-btn .chevron { margin-left: auto; color: var(--muted); }
+
+    .profile-wrap { text-align: center; padding: 20px 0; }
+    .profile-avatar {
+      width: 88px; height: 88px; border-radius: 50%;
+      margin: 0 auto 14px;
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 800;
+      box-shadow: 0 8px 32px rgba(0, 152, 234, 0.4);
+      animation: floatStar 4s ease-in-out infinite;
+      overflow: hidden;
+    }
+    .profile-name { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+    .profile-tag { color: var(--muted); font-size: 14px; margin: 6px 0 18px; }
+    .profile-meta {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .profile-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px; padding: 10px 18px;
+      font-size: 15px; font-weight: 700;
+    }
+    .profile-chip.muted { font-size: 13px; font-weight: 500; color: var(--muted); border: none; background: transparent; padding: 0; }
+
+    .podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 10px; margin: 28px 0; min-height: 210px;
+    }
+    .podium-item { text-align: center; flex: 1; max-width: 110px; animation: fadeInScale 0.5s ease-out both; }
+    .podium-item.first { animation-delay: 0.1s; }
+    .podium-item.second { animation-delay: 0s; }
+    .podium-item.third { animation-delay: 0.2s; }
+    .podium-item .ava {
+      width: 58px; height: 58px; border-radius: 50%;
+      margin: 0 auto 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 20px;
+      background: var(--gradient-primary);
+    }
+    .podium-item.first .ava {
+      width: 76px; height: 76px; font-size: 28px;
+      box-shadow: 0 0 28px rgba(255, 215, 0, 0.5);
+      animation: floatStar 3s ease-in-out infinite;
+    }
+    .podium-bar {
+      border-radius: 12px 12px 0 0; padding: 10px 4px;
+      font-size: 15px; font-weight: 800; margin-top: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .podium-item.first .podium-bar { background: linear-gradient(180deg, var(--gold), #b8860b); height: 100px; color: #1a1a1a; }
+    .podium-item.second .podium-bar { background: linear-gradient(180deg, var(--silver), #888); height: 72px; color: #1a1a1a; }
+    .podium-item.third .podium-bar { background: linear-gradient(180deg, var(--bronze), #8b4513); height: 52px; color: #fff; }
+
+    .top-list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      animation: slideInItem 0.35s ease-out both;
+    }
+    .top-list-item .rank { color: var(--muted); width: 28px; font-size: 13px; font-weight: 700; text-align: center; }
+
+    .review-item {
+      padding: 16px; margin-bottom: 10px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px; backdrop-filter: blur(12px);
+    }
+    .review-stars { display: flex; gap: 2px; color: var(--gold); }
+    .review-stars .ico { width: 14px; height: 14px; }
+    .review-stars .ico.empty { color: rgba(255,255,255,0.15); }
+
+    .empty-state {
+      text-align: center; padding: 32px 16px; color: var(--muted);
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .empty-state .ico-box { width: 48px; height: 48px; border-radius: 14px; margin: 0 auto; }
+
+    .soon-wrap { text-align: center; padding: 60px 20px; }
+    .soon-lottie { width: 140px; height: 140px; margin: 0 auto 16px; }
+    .soon-text { font-size: 22px; font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .soon-sub { color: var(--muted); font-size: 14px; }
+
+    .loading-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 32px 16px; gap: 12px;
+    }
+    .loading-lottie { width: 80px; height: 80px; }
+    .loading-text { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+      z-index: 200000; align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
+    .modal-sheet {
+      background: rgba(22, 22, 24, 0.95);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 28px 28px 0 0;
+      padding: 28px 24px calc(28px + env(safe-area-inset-bottom));
+      width: 100%; max-width: 480px; text-align: center;
+      animation: slideUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-lottie { width: 72px; height: 72px; margin: 0 auto 16px; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .modal-desc { color: var(--muted); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="bg-glow-2"></div>
+
+  <div id="app-loader">
+    <lottie-player class="loader-lottie" id="mainLoaderLottie" background="transparent" speed="1" loop autoplay></lottie-player>
+    <div id="fallbackSpinner" style="display:none;width:44px;height:44px;border:4px solid rgba(255,255,255,0.1);border-left-color:#0098EA;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+    <div class="loader-text">Fresko Store</div>
+    <div class="connection-line">
+      <div class="connection-dot"></div>
+      <div class="connection-dot"></div>
+      <div class="connection-dot"></div>
+    </div>
+  </div>
+
+  <header class="store-header">
+    <div class="header-left">
+      <img id="botAvatar" class="header-logo" src="" alt="" onerror="this.style.opacity='0.3'" />
+      <div class="header-title">
+        <span id="storeName1">Fresko</span>
+        <span id="storeName2">Store</span>
+      </div>
+    </div>
+    <div class="header-pill" id="headerPill"></div>
+  </header>
+
+  <div id="page-home" class="page active">
+    <div class="glass-card">
+      <div class="card-title" id="titleRecent"></div>
+      <div id="recentPurchases"><div class="loading-wrap" id="recentLoading"></div></div>
+    </div>
+    <p class="hint">Все нужные страницы — в панели управления снизу. Там инструкция к установке товара и файлы к нему.</p>
+    <button class="btn" id="btnReviews" onclick="showPage('reviews')"></button>
+    <div class="divider"></div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num" id="statPurchases">—</div><div class="stat-label">Покупок</div></div>
+      <div class="stat-box"><div class="stat-num" id="statUsers">—</div><div class="stat-label">Юзеров</div></div>
+      <div class="stat-box"><div class="stat-num" id="statReviews">—</div><div class="stat-label">Отзывов</div></div>
+    </div>
+    <div class="online-block">
+      <div class="online-num" id="onlineToday">—</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">макс. онлайн сегодня</div>
+      <div class="online-sub">(<span id="onlineNow">—</span> онлайн за последние 3ч)</div>
+    </div>
+    <div class="glass-card">
+      <div class="card-title" id="titleDownloads"></div>
+      <div class="stat-num" id="downloadsTotal" style="text-align:center;margin-bottom:14px">—</div>
+      <div id="topFiles"></div>
+    </div>
+    <div class="glass-card rating-big">
+      <div class="card-title" style="justify-content:center" id="titleRating"></div>
+      <div class="stars-row" id="ratingStars"></div>
+      <div class="score" id="ratingScore">—</div>
+      <div class="online-sub">на основе отзывов покупателей</div>
+    </div>
+  </div>
+
+  <div id="page-files" class="page">
+    <div class="page-head" id="headFiles"></div>
+    <div id="fileCategories"><div class="loading-wrap" id="filesLoading"></div></div>
+  </div>
+
+  <div id="page-instructions" class="page">
+    <div class="soon-wrap">
+      <lottie-player class="soon-lottie" src="https://assets2.lottiefiles.com/packages/lf20_usmfx6bp.json" background="transparent" speed="0.8" loop autoplay></lottie-player>
+      <div class="soon-text" id="soonTitle"></div>
+      <div class="soon-sub">Скоро будет инструкция</div>
+    </div>
+  </div>
+
+  <div id="page-profile" class="page">
+    <div class="profile-wrap">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div class="profile-name" id="profileName">—</div>
+      <div class="profile-tag" id="profileTag">—</div>
+      <div class="profile-meta">
+        <div class="profile-chip" id="profileBalance"></div>
+        <div class="profile-chip muted" id="profilePurchases"></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <button class="btn btn-glass" id="btnUserReviews" onclick="showUserReviews()"></button>
+    <button class="btn btn-glass" id="btnUserDownloads" onclick="showUserDownloads()"></button>
+  </div>
+
+  <div id="page-top" class="page">
+    <div class="page-head" style="justify-content:center" id="headTop"></div>
+    <div class="podium" id="podium"></div>
+    <div id="topList"></div>
+  </div>
+
+  <div id="page-reviews" class="page">
+    <button class="btn btn-glass btn-back" id="btnBackHome" onclick="showPage('home')"></button>
+    <div id="allReviews"><div class="loading-wrap" id="reviewsLoading"></div></div>
+  </div>
+
+  <div id="page-user-reviews" class="page">
+    <button class="btn btn-glass btn-back" id="btnBackProfile1" onclick="showPage('profile')"></button>
+    <div id="userReviewsList"></div>
+  </div>
+
+  <div id="page-user-downloads" class="page">
+    <button class="btn btn-glass btn-back" id="btnBackProfile2" onclick="showPage('profile')"></button>
+    <div id="userDownloadsList"></div>
+  </div>
+
+  <div class="modal-overlay" id="filesModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-sheet">
+      <lottie-player class="modal-lottie" src="https://assets2.lottiefiles.com/packages/lf20_jbrwj3f0.json" background="transparent" speed="1" loop autoplay></lottie-player>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-desc">Файлы будут отправлены в личные сообщения бота. Нажмите кнопку ниже, чтобы открыть бота.</div>
+      <button class="btn" id="filesModalBtn">Скачать в боте</button>
+      <button class="btn btn-glass" onclick="closeModal()" style="margin-top:4px">Отмена</button>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-page="home" id="nav-home"></button>
+    <button class="nav-item" data-page="files" id="nav-files"></button>
+    <button class="nav-item" data-page="instructions" id="nav-instructions"></button>
+    <button class="nav-item" data-page="profile" id="nav-profile"></button>
+    <button class="nav-item" data-page="top" id="nav-top"></button>
+  </nav>
+
+  <script>
+    const SUPABASE_URL = 'https://lzuvezrzgxoynkvfswbv.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6dXZlenJ6Z3hveW5rdmZzd2J2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxNjkwNTMsImV4cCI6MjEwMTc0NTA1M30.c196NVVvzlNJE63sNBfNDAgcdNtfLwqs5kciTwIk8IE';
+    const LOADER_LOTTIE = 'https://assets2.lottiefiles.com/packages/lf20_usmfx6bp.json';
+
+    const ICONS = {
+      home: '<path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z"/>',
+      files: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+      book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+      user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      trophy: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 5H3v1a3 3 0 0 0 3 3"/><path d="M19 5h2v1a3 3 0 0 1-3 3"/>',
+      cart: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
+      download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+      star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+      shop: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+      wallet: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      package: '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+      chevronLeft: '<polyline points="15 18 9 12 15 6"/>',
+      chevronRight: '<polyline points="9 18 15 12 9 6"/>',
+      document: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+      users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    };
+
+    function icon(name, cls = 'ico') {
+      const path = ICONS[name] || '';
+      const fillClass = name === 'star' ? ' ico-fill' : '';
+      return `<svg class="${cls}${fillClass}" viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`;
+    }
+
+    function iconBox(name, color = '') {
+      return `<span class="ico-box${color ? ' ' + color : ''}">${icon(name)}</span>`;
+    }
+
+    function starsHtml(rating, size = 'ico') {
+      let html = '';
+      for (let i = 1; i <= 5; i++) {
+        html += icon('star', size + (i <= rating ? '' : ' empty'));
+      }
+      return html;
+    }
+
+    function setNavItem(id, iconName, label) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `${icon(iconName, 'ico ico-nav')}<span class="nav-label">${label}</span>`;
+    }
+
+    function setBtnIcon(id, iconName, text) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `${icon(iconName, 'ico')}<span>${text}</span>`;
+    }
+
+    function emptyState(iconName, text) {
+      return `<div class="empty-state">${iconBox(iconName)}<span>${text}</span></div>`;
+    }
+
+    // Static UI labels
+    document.getElementById('headerPill').innerHTML = icon('shop', 'ico ico-sm') + '<span>Магазин</span>';
+    document.getElementById('titleRecent').innerHTML = iconBox('cart') + '<span>Недавно купили</span>';
+    document.getElementById('titleDownloads').innerHTML = iconBox('download', 'purple') + '<span>Скачивания в боте</span>';
+    document.getElementById('titleRating').innerHTML = iconBox('star', 'gold') + '<span>Рейтинг магазина</span>';
+    document.getElementById('headFiles').innerHTML = iconBox('files') + '<h2>Файлы</h2>';
+    document.getElementById('headTop').innerHTML = iconBox('trophy', 'gold') + '<h2>Топ покупателей</h2>';
+    document.getElementById('soonTitle').innerHTML = icon('book', 'ico ico-lg') + '<span>Soon</span>';
+    document.getElementById('modalTitle').innerHTML = icon('files', 'ico') + '<span>Файлы выданы</span>';
+    setBtnIcon('btnReviews', 'star', 'Посмотреть отзывы');
+    setBtnIcon('btnUserReviews', 'star', 'Твои отзывы');
+    setBtnIcon('btnUserDownloads', 'download', 'Скачанные файлы');
+    setBtnIcon('btnBackHome', 'chevronLeft', 'Назад');
+    setBtnIcon('btnBackProfile1', 'chevronLeft', 'Назад');
+    setBtnIcon('btnBackProfile2', 'chevronLeft', 'Назад');
+    setNavItem('nav-home', 'home', 'Главная');
+    setNavItem('nav-files', 'files', 'Файлы');
+    setNavItem('nav-instructions', 'book', 'Инструкция');
+    setNavItem('nav-profile', 'user', 'Профиль');
+    setNavItem('nav-top', 'trophy', 'Топ');
+
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); }
+
+    const tgUser = tg?.initDataUnsafe?.user;
+    let botInfo = { username: '', name: 'Fresko Store', avatar_url: null };
+    const NAV_PAGES = ['home', 'files', 'instructions', 'profile', 'top'];
+
+    function loadingHtml() {
+      return `<div class="loading-wrap"><lottie-player class="loading-lottie" src="${LOADER_LOTTIE}" background="transparent" speed="1" loop autoplay></lottie-player><div class="loading-text">Загрузка...</div></div>`;
+    }
+
+    ['recentLoading', 'filesLoading', 'reviewsLoading'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = loadingHtml();
+    });
+    document.getElementById('mainLoaderLottie').src = LOADER_LOTTIE;
+
+    async function sbFetch(table, query = '') {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!res.ok) return [];
+      return res.json();
+    }
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return `${Math.max(1, mins)} мин. назад`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs} ч. назад`;
+      return `${Math.floor(hrs / 24)} дн. назад`;
+    }
+
+    function userLabel(u) {
+      if (u.username) return '@' + u.username;
+      if (u.first_name) return u.first_name;
+      return 'ID' + u.telegram_id;
+    }
+
+    function avatarLetter(name) {
+      return (name || '?')[0].toUpperCase();
+    }
+
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + name)?.classList.add('active');
+      document.getElementById('bottomNav').classList.toggle('hidden-nav', !NAV_PAGES.includes(name));
+      document.querySelectorAll('.nav-item').forEach(b => {
+        b.classList.toggle('active', b.dataset.page === name);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => showPage(btn.dataset.page));
+    });
+
+    function closeModal() {
+      document.getElementById('filesModal').classList.remove('show');
+    }
+
+    function openFilesModal(catId) {
+      document.getElementById('filesModal').classList.add('show');
+      document.getElementById('filesModalBtn').onclick = () => {
+        const username = botInfo.username;
+        if (username) {
+          const link = `https://t.me/${username}?start=files_${catId}`;
+          if (tg?.openTelegramLink) tg.openTelegramLink(link);
+          else window.open(link, '_blank');
+        }
+        closeModal();
+      };
+    }
+
+    function hideAppLoader() {
+      const loader = document.getElementById('app-loader');
+      loader.classList.add('hidden');
+      setTimeout(() => { loader.style.display = 'none'; }, 400);
+    }
+
+    async function loadBotInfo() {
+      const rows = await sbFetch('store_settings', 'key=eq.bot_info&select=value');
+      if (rows[0]?.value) {
+        botInfo = { ...botInfo, ...rows[0].value };
+        const name = botInfo.store_name || botInfo.name || 'Fresko Store';
+        const parts = name.split(' ');
+        document.getElementById('storeName1').textContent = parts[0] || 'Fresko';
+        document.getElementById('storeName2').textContent = parts.slice(1).join(' ') || 'Store';
+        if (botInfo.avatar_url) document.getElementById('botAvatar').src = botInfo.avatar_url;
+      }
+    }
+
+    async function loadRecentPurchases() {
+      const items = await sbFetch('store_purchases', 'order=created_at.desc&limit=8&select=*');
+      const el = document.getElementById('recentPurchases');
+      if (!items.length) { el.innerHTML = emptyState('cart', 'Пока нет покупок'); return; }
+      el.innerHTML = items.map((p, i) => `
+        <div class="recent-item" style="animation-delay:${i * 0.06}s">
+          <div class="avatar">${avatarLetter(p.username || p.first_name)}</div>
+          <div class="recent-info">
+            <div class="recent-name">${userLabel(p)}</div>
+            <div class="recent-product">${p.product_name || '—'}</div>
+            <div class="recent-time">${timeAgo(p.created_at)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadStats() {
+      const rows = await sbFetch('store_settings', 'key=eq.stats&select=value');
+      const s = rows[0]?.value || {};
+      animateNumber('statPurchases', s.purchases_count ?? 0);
+      animateNumber('statUsers', s.users_count ?? 0);
+      animateNumber('statReviews', s.reviews_count ?? 0);
+      animateNumber('onlineToday', s.online_today ?? 0);
+      animateNumber('onlineNow', s.online_now ?? 0);
+      animateNumber('downloadsTotal', s.downloads_total ?? 0);
+      const avg = s.avg_rating ?? 0;
+      document.getElementById('ratingScore').textContent = avg + '/5';
+      document.getElementById('ratingStars').innerHTML = starsHtml(Math.round(avg), 'ico');
+      const topFiles = s.top_files || [];
+      document.getElementById('topFiles').innerHTML = topFiles.length
+        ? topFiles.map((f, i) => `<div class="top-file"><span class="row-center">${icon('document', 'ico ico-sm')}<span>${i+1}. ${f.name}</span></span><span style="color:var(--accent2);font-weight:700">${f.count}×</span></div>`).join('')
+        : '<div class="hint">Нет данных</div>';
+      renderTop(s.top_buyers || []);
+    }
+
+    function animateNumber(id, target) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const t = parseInt(target) || 0;
+      let cur = 0;
+      const step = Math.max(1, Math.ceil(t / 20));
+      const timer = setInterval(() => {
+        cur = Math.min(cur + step, t);
+        el.textContent = cur;
+        if (cur >= t) clearInterval(timer);
+      }, 30);
+    }
+
+    function renderTop(buyers) {
+      const podiumEl = document.getElementById('podium');
+      const listEl = document.getElementById('topList');
+      const order = [1, 0, 2];
+      const classes = ['second', 'first', 'third'];
+      const places = ['2', '1', '3'];
+      const top3 = buyers.slice(0, 3);
+      if (!top3.length) {
+        podiumEl.innerHTML = emptyState('trophy', 'Нет данных');
+        listEl.innerHTML = '';
+        return;
+      }
+      const ordered = order.map(i => top3[i]).filter(Boolean);
+      podiumEl.innerHTML = ordered.map((b, idx) => {
+        const cls = classes[idx];
+        const name = b.username ? '@'+b.username : 'ID'+b.telegram_id;
+        return `<div class="podium-item ${cls}">
+          <div class="ava">${avatarLetter(b.username)}</div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">${name}</div>
+          <div style="font-size:11px;color:var(--muted)">${b.count} шт · ${Math.round(b.sum)}₽</div>
+          <div class="podium-bar">${places[idx]}</div>
+        </div>`;
+      }).join('');
+      listEl.innerHTML = buyers.slice(3, 25).map((b, i) => `
+        <div class="top-list-item" style="animation-delay:${i * 0.04}s">
+          <span class="rank">${i + 4}</span>
+          <div class="avatar" style="width:36px;height:36px;font-size:14px">${avatarLetter(b.username)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.username ? '@'+b.username : 'ID'+b.telegram_id}</div>
+            <div style="font-size:12px;color:var(--muted)">${b.count} покупок · ${Math.round(b.sum)}₽</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadFileCategories() {
+      const cats = await sbFetch('store_file_categories', 'select=*&order=category_id');
+      const el = document.getElementById('fileCategories');
+      if (!cats.length) { el.innerHTML = emptyState('files', 'Категории пока не добавлены'); return; }
+      el.innerHTML = cats.map((c, i) => `
+        <button class="file-btn" style="animation:slideInItem 0.4s ease-out ${i * 0.05}s both" onclick="openFilesModal(${c.category_id})">
+          ${iconBox('files')}
+          <span style="flex:1">${c.name}</span>
+          <span class="chevron">${icon('chevronRight', 'ico ico-sm')}</span>
+        </button>
+      `).join('');
+    }
+
+    async function loadProfile() {
+      if (!tgUser) {
+        document.getElementById('profileName').textContent = 'Откройте через Telegram';
+        return;
+      }
+      const name = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+      document.getElementById('profileName').textContent = name;
+      document.getElementById('profileTag').textContent = tgUser.username ? '@' + tgUser.username : 'без username';
+      const avEl = document.getElementById('profileAvatar');
+      if (tgUser.photo_url) {
+        avEl.innerHTML = `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover" alt="" />`;
+      } else {
+        avEl.textContent = avatarLetter(tgUser.first_name);
+      }
+      const users = await sbFetch('store_users', `telegram_id=eq.${tgUser.id}&select=*`);
+      const u = users[0];
+      if (u) {
+        document.getElementById('profileBalance').innerHTML = `${icon('wallet', 'ico ico-sm')}<span>${(u.balance_rub?.toFixed(2) ?? '0')} ₽</span>`;
+        document.getElementById('profilePurchases').innerHTML = `${icon('package', 'ico ico-sm')}<span>${u.purchases_count ?? 0} покупок · ${(u.purchases_sum ?? 0).toFixed(2)} ₽</span>`;
+      }
+    }
+
+    async function loadAllReviews() {
+      const reviews = await sbFetch('store_reviews', 'order=created_at.desc&limit=30&select=*');
+      const el = document.getElementById('allReviews');
+      if (!reviews.length) { el.innerHTML = emptyState('message', 'Отзывов пока нет'); return; }
+      el.innerHTML = reviews.map((r, i) => `
+        <div class="review-item" style="animation:fadeInScale 0.35s ease-out ${i * 0.04}s both">
+          <div class="review-stars">${starsHtml(r.rating, 'ico')}</div>
+          <div style="font-weight:700;margin:8px 0 4px">${r.username ? '@'+r.username : 'Покупатель'}</div>
+          <div style="font-size:13px;color:var(--muted)">${r.product_name || ''}</div>
+          <div style="margin-top:10px;font-size:14px;line-height:1.5">${r.text || 'Без комментария'}</div>
+        </div>
+      `).join('');
+    }
+
+    async function showUserReviews() {
+      showPage('user-reviews');
+      const el = document.getElementById('userReviewsList');
+      if (!tgUser) { el.innerHTML = emptyState('user', 'Нужен Telegram'); return; }
+      el.innerHTML = loadingHtml();
+      const reviews = await sbFetch('store_reviews', `telegram_id=eq.${tgUser.id}&order=created_at.desc&select=*`);
+      if (!reviews.length) { el.innerHTML = emptyState('star', 'Вы ещё не оставляли отзывы'); return; }
+      el.innerHTML = reviews.map(r => `
+        <div class="review-item">
+          <div class="review-stars">${starsHtml(r.rating, 'ico')}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px">${r.product_name}</div>
+          <div style="margin-top:8px;line-height:1.5">${r.text || '—'}</div>
+        </div>
+      `).join('');
+    }
+
+    async function showUserDownloads() {
+      showPage('user-downloads');
+      const el = document.getElementById('userDownloadsList');
+      if (!tgUser) { el.innerHTML = emptyState('user', 'Нужен Telegram'); return; }
+      el.innerHTML = loadingHtml();
+      const items = await sbFetch('store_file_downloads', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=50&select=*`);
+      if (!items.length) { el.innerHTML = emptyState('download', 'Вы ещё не скачивали файлы'); return; }
+      el.innerHTML = items.map(d => `
+        <div class="top-list-item">
+          <span class="ico-box">${icon('document')}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.file_name || 'Файл'}</div>
+            <div style="font-size:12px;color:var(--muted)">${d.category_name || ''} · ${timeAgo(d.created_at)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function init() {
+      try {
+        await loadBotInfo();
+        await Promise.all([loadRecentPurchases(), loadStats(), loadFileCategories(), loadProfile(), loadAllReviews()]);
+      } finally {
+        hideAppLoader();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
