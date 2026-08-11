@@ -170,7 +170,47 @@
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 20px; padding: 7px 12px;
       font-size: 12px; font-weight: 700; color: var(--accent2);
+      cursor: pointer; position: relative;
     }
+    .header-pill-tip {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: rgba(30,30,35,0.95); border: 1px solid rgba(255,255,255,0.12);
+      padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: 600;
+      white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+      color: #fff; z-index: 60;
+    }
+    .header-pill.show-tip .header-pill-tip { opacity: 1; }
+    .clickable-stat { cursor: pointer; position: relative; }
+    .clickable-stat::after {
+      content: 'можно нажать'; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: var(--accent2); opacity: 0.85; white-space: nowrap;
+    }
+    #app-loader .loader-user-avatar {
+      width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+      border: 3px solid rgba(0,152,234,0.4); margin-bottom: 8px;
+    }
+    .loader-marquee-wrap { width: 100%; max-width: 320px; overflow: hidden; margin-top: 10px; }
+    .loader-marquee-row {
+      white-space: nowrap; font-size: 12px; color: var(--muted); font-weight: 600;
+      animation: marqueeL 12s linear infinite; margin: 6px 0;
+    }
+    .loader-marquee-row.reverse { animation-name: marqueeR; }
+    .loader-marquee-row.l2 { margin-top: 14px; }
+    .loader-marquee-row.l3 { margin-top: 14px; }
+    @keyframes marqueeL { 0% { transform: translateX(-110%); } 100% { transform: translateX(110%); } }
+    @keyframes marqueeR { 0% { transform: translateX(110%); } 100% { transform: translateX(-110%); } }
+    .chart-bar-wrap { display: flex; align-items: flex-end; gap: 4px; height: 160px; padding: 10px 0; }
+    .chart-bar {
+      flex: 1; min-width: 6px; background: var(--gradient-primary); border-radius: 6px 6px 2px 2px;
+      transition: height 0.6s cubic-bezier(0.2,0.8,0.2,1);
+    }
+    .shop-item, .shop-cat {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 14px; margin-bottom: 10px; border-radius: 16px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      color: #fff; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-disabled-red { background: rgba(255,59,48,0.15) !important; border: 1px solid rgba(255,59,48,0.35) !important; color: #ff6b6b !important; box-shadow: none !important; }
 
     .page { display: none; padding: 16px; position: relative; z-index: 1; }
     .page.active { display: block; animation: fadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -214,23 +254,25 @@
       to { opacity: 1; transform: translateX(0); }
     }
     .avatar {
-      width: 42px; height: 42px; border-radius: 50%;
+      width: 38px; height: 38px; border-radius: 50%;
       background: var(--gradient-primary);
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 16px; flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(0, 152, 234, 0.3);
-      overflow: hidden;
+      font-weight: 700; font-size: 15px; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 152, 234, 0.25);
+      overflow: hidden; border: 2px solid rgba(255,255,255,0.12);
     }
     .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
     .avatar.lg { width: 58px; height: 58px; font-size: 20px; }
     .avatar.xl { width: 76px; height: 76px; font-size: 28px; }
     .avatar.md { width: 36px; height: 36px; font-size: 14px; }
 
-    .recent-carousel { position: relative; min-height: 72px; overflow: hidden; }
+    .recent-carousel { position: relative; min-height: 56px; max-height: 56px; overflow: hidden; padding: 4px 2px; }
+    .recent-card-wrap { overflow: hidden; border-radius: 14px; }
+    .glass-card.recent-card { padding: 12px 14px; margin-bottom: 12px; }
     .recent-slide {
-      display: flex; align-items: center; gap: 14px;
-      opacity: 0; transform: translateX(16px);
-      position: absolute; inset: 0;
+      display: flex; align-items: center; gap: 10px;
+      opacity: 0; transform: translateX(12px);
+      position: absolute; inset: 0; padding: 0 2px;
       transition: opacity 0.45s ease, transform 0.45s ease;
       pointer-events: none;
     }
@@ -546,9 +588,11 @@
   <div class="bg-glow-2"></div>
 
   <div id="app-loader">
+    <img id="loaderUserAvatar" class="loader-user-avatar" src="" alt="" style="display:none" />
     <lottie-player class="loader-lottie" id="mainLoaderLottie" background="transparent" speed="1" loop autoplay></lottie-player>
     <div id="fallbackSpinner" style="display:none;width:44px;height:44px;border:4px solid rgba(255,255,255,0.1);border-left-color:#0098EA;border-radius:50%;animation:spin 0.8s linear infinite"></div>
     <div class="loader-text">Fresko Store</div>
+    <div class="loader-marquee-wrap" id="loaderMarquee"></div>
     <div class="connection-line">
       <div class="connection-dot"></div>
       <div class="connection-dot"></div>
@@ -564,21 +608,31 @@
         <span id="storeName2">Store</span>
       </div>
     </div>
-    <div class="header-pill" id="headerPill"></div>
+    <div class="header-pill" id="headerPill"><span class="header-pill-tip">Можно открыть магазин</span></div>
   </header>
 
   <div id="page-home" class="page active">
-    <div class="glass-card">
+    <div class="glass-card recent-card">
       <div class="card-title" id="titleRecent"></div>
-      <div id="recentPurchases"><div class="loading-wrap" id="recentLoading"></div></div>
+      <div class="recent-card-wrap"><div id="recentPurchases"><div class="loading-wrap" id="recentLoading"></div></div></div>
     </div>
     <p class="hint">Все нужные страницы — в панели управления снизу. Там инструкция к установке товара и файлы к нему.</p>
     <button class="btn" id="btnReviews" onclick="showPage('reviews')"></button>
     <div class="divider"></div>
     <div class="stats-row">
-      <div class="stat-box"><div class="stat-num" id="statPurchases">—</div><div class="stat-label">Покупок</div></div>
-      <div class="stat-box"><div class="stat-num" id="statUsers">—</div><div class="stat-label">Юзеров</div></div>
+      <div class="stat-box clickable-stat" onclick="showUsersChart()"><div class="stat-num" id="statPurchases">—</div><div class="stat-label">Покупок</div></div>
+      <div class="stat-box clickable-stat" onclick="showUsersChart()"><div class="stat-num" id="statUsers">—</div><div class="stat-label">Юзеров</div></div>
       <div class="stat-box"><div class="stat-num" id="statReviews">—</div><div class="stat-label">Отзывов</div></div>
+    </div>
+    <div class="stats-row" style="margin-top:10px">
+      <div class="stat-box clickable-stat" onclick="showReferralInfo()"><div class="stat-num" id="statReferrals">—</div><div class="stat-label">Рефералов</div></div>
+      <div class="stat-box clickable-stat" onclick="showDaysInfo()"><div class="stat-num" id="statDays">—</div><div class="stat-label">Дней работы</div></div>
+      <div class="stat-box clickable-stat" onclick="showPage('support')"><div class="stat-num" id="statTickets">—</div><div class="stat-label">Тикетов</div></div>
+    </div>
+    <div class="glass-card rating-big" style="margin-top:14px">
+      <div class="card-title" style="justify-content:center">Оценка бота</div>
+      <div class="stars-row" id="botRatingStars"></div>
+      <div class="score" id="botRatingScore">—</div>
     </div>
     <div class="online-block">
       <div class="online-num" id="onlineToday">—</div>
@@ -626,6 +680,8 @@
     <button class="btn btn-glass" id="btnUserTransactions" onclick="showUserTransactions()"></button>
     <button class="btn btn-glass" id="btnUserReviews" onclick="showUserReviews()"></button>
     <button class="btn btn-glass" id="btnUserDownloads" onclick="showUserDownloads()"></button>
+    <button class="btn" id="btnFreeKey" onclick="showFreeKey()">Получить ключ бесплатно</button>
+    <button class="btn btn-glass" id="btnActivateReceipt" onclick="promptActivateReceipt()">Активировать чек</button>
   </div>
 
   <div id="page-user-purchases" class="page">
@@ -668,6 +724,56 @@
     <div id="userDownloadsList"></div>
   </div>
 
+  <div id="page-shop" class="page">
+    <button class="btn btn-glass btn-back" onclick="showPage('home')">← Назад</button>
+    <div class="page-head"><h2>Магазин</h2></div>
+    <div id="shopContent"></div>
+  </div>
+
+  <div id="page-support" class="page">
+    <button class="btn btn-glass btn-back" onclick="showPage('home')">← Назад</button>
+    <div class="page-head"><h2>Поддержка</h2></div>
+    <textarea id="ticketText" placeholder="Опишите проблему..." style="width:100%;min-height:120px;border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;padding:14px;font-family:inherit;margin-bottom:12px"></textarea>
+    <button class="btn" onclick="submitTicket()">Отправить тикет</button>
+    <div id="ticketHistory" style="margin-top:16px"></div>
+  </div>
+
+  <div id="page-user-profile" class="page">
+    <button class="btn btn-glass btn-back" onclick="history.back()">← Назад</button>
+    <div id="publicProfile"></div>
+  </div>
+
+  <div id="page-users-chart" class="page">
+    <button class="btn btn-glass btn-back" onclick="showPage('home')">← Назад</button>
+    <div class="page-head"><h2>График заходов</h2></div>
+    <div class="chart-bar-wrap" id="usersChart"></div>
+  </div>
+
+  <div id="page-referral" class="page">
+    <button class="btn btn-glass btn-back" onclick="showPage('home')">← Назад</button>
+    <div class="glass-card" id="referralInfo"></div>
+  </div>
+
+  <div class="modal-overlay" id="freeKeyModal" onclick="if(event.target===this)closeFreeKeyModal()">
+    <div class="modal-sheet">
+      <div class="modal-title">🎁 Бесплатный ключ</div>
+      <div class="modal-desc" id="freeKeyModalDesc"></div>
+      <div id="freeKeyTasks" style="text-align:left;font-size:13px;line-height:1.6;margin-bottom:16px"></div>
+      <div id="freeKeyProducts" style="display:none;text-align:left;margin-bottom:12px"></div>
+      <button class="btn" id="freeKeyClaimBtn" style="display:none" onclick="claimFreeKey()">Выбрать товар</button>
+      <button class="btn btn-glass" onclick="closeFreeKeyModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="ratingModal" onclick="if(event.target===this)closeRatingModal()">
+    <div class="modal-sheet">
+      <div class="modal-title">Оцените бота</div>
+      <div class="modal-desc">Как вам Fresko Store?</div>
+      <div class="stars-row" id="ratingModalStars" style="justify-content:center;margin:12px 0"></div>
+      <button class="btn btn-glass" onclick="closeRatingModal()">Позже</button>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="filesModal" onclick="if(event.target===this)closeModal()">
     <div class="modal-sheet">
       <lottie-player class="modal-lottie" src="https://assets2.lottiefiles.com/packages/lf20_jbrwj3f0.json" background="transparent" speed="1" loop autoplay></lottie-player>
@@ -692,6 +798,7 @@
     const LOADER_LOTTIE = 'https://assets2.lottiefiles.com/packages/lf20_usmfx6bp.json';
     const DEFAULT_STORE_AVATAR = 'https://i.postimg.cc/sx9fLX9V/photo-2026-08-06-11-50-26.jpg';
     const DEFAULT_USER_AVATAR = 'https://i.postimg.cc/2j4XtvvK/1dece2c8357bdd7cee3b15036344faf5.jpg';
+    let API_URL = 'http://127.0.0.1:8080';
 
     let recentCarouselTimer = null;
     let recentCarouselIndex = 0;
@@ -845,11 +952,12 @@
       return DEFAULT_USER_AVATAR;
     }
 
-    function avatarHtml(user, sizeClass = '') {
-      const letter = avatarLetter(user.username || user.first_name);
+    function avatarHtml(user, sizeClass = '', clickable = false) {
       const url = avatarUrl(user);
       const cls = 'avatar' + (sizeClass ? ' ' + sizeClass : '');
-      return `<div class="${cls}"><img src="${url}" alt="" onerror="this.onerror=null;this.src='${DEFAULT_USER_AVATAR}'"></div>`;
+      const tid = user.telegram_id || user.id;
+      const click = clickable && tid ? ` onclick="openUserProfile(${tid})" style="cursor:pointer"` : '';
+      return `<div class="${cls}"${click}><img src="${url}" alt="" onerror="this.onerror=null;this.src='${DEFAULT_USER_AVATAR}'"></div>`;
     }
 
     function userLabel(u) {
@@ -920,7 +1028,7 @@
         <div class="recent-carousel">
           ${recentCarouselItems.map((p, i) => `
             <div class="recent-slide${i === 0 ? ' active' : ''}">
-              ${avatarHtml(p)}
+              ${avatarHtml(p, '', true)}
               <div class="recent-info">
                 <div class="recent-name">${userLabel(p)}</div>
                 <div class="recent-product">${purchaseLabel(p)}</div>
@@ -997,7 +1105,7 @@
         const name = b.username ? '@'+b.username : 'ID'+b.telegram_id;
         const sizeCls = cls === 'first' ? 'xl' : 'lg';
         return `<div class="podium-item ${cls}">
-          ${avatarHtml(b, sizeCls)}
+          ${avatarHtml(b, sizeCls, true)}
           <div class="podium-name">${name}</div>
           <div class="podium-stats">${b.count} шт · ${Math.round(b.sum)}₽</div>
           <div class="podium-bar">${places[idx]}</div>
@@ -1006,7 +1114,7 @@
       listEl.innerHTML = buyers.slice(3, 25).map((b, i) => `
         <div class="top-list-item" style="animation-delay:${i * 0.04}s">
           <span class="rank">${i + 4}</span>
-          ${avatarHtml(b, 'md')}
+          ${avatarHtml(b, 'md', true)}
           <div style="flex:1;min-width:0">
             <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.username ? '@'+b.username : 'ID'+b.telegram_id}</div>
             <div style="font-size:12px;color:var(--muted)">${b.count} покупок · ${Math.round(b.sum)}₽</div>
@@ -1045,6 +1153,7 @@
         document.getElementById('profileBalance').innerHTML = `${icon('wallet', 'ico ico-sm')}<span>${(u.balance_rub?.toFixed(2) ?? '0')} ₽</span>`;
         document.getElementById('profilePurchases').innerHTML = `${icon('package', 'ico ico-sm')}<span>${u.purchases_count ?? 0} покупок · ${(u.purchases_sum ?? 0).toFixed(2)} ₽</span>`;
       }
+      loadFreeKeyButtonState();
     }
 
     async function loadAllReviews() {
@@ -1194,13 +1303,327 @@
       `).join('');
     }
 
+    async function apiFetch(path, body = {}) {
+      const res = await fetch(API_URL + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: tg?.initData || '', ...body }),
+      });
+      return res.json();
+    }
+
+    function setupLoaderMarquee() {
+      if (!tgUser) return;
+      const av = document.getElementById('loaderUserAvatar');
+      if (av && tgUser.photo_url) {
+        av.src = tgUser.photo_url;
+        av.style.display = 'block';
+        document.getElementById('mainLoaderLottie').style.display = 'none';
+      }
+      const lines = [
+        tgUser.first_name || 'Пользователь',
+        tgUser.username ? '@' + tgUser.username : 'ID ' + tgUser.id,
+        'Добро пожаловать в Fresko Store',
+      ];
+      document.getElementById('loaderMarquee').innerHTML = lines.map((t, i) =>
+        `<div class="loader-marquee-row${i > 0 ? ' l' + (i+1) : ''}${i % 2 ? ' reverse' : ''}">${t}</div>`
+      ).join('');
+    }
+
+    document.getElementById('headerPill').addEventListener('click', () => {
+      const pill = document.getElementById('headerPill');
+      pill.classList.add('show-tip');
+      setTimeout(() => pill.classList.remove('show-tip'), 2000);
+      showPage('shop');
+      loadShop();
+    });
+
+    async function loadShop() {
+      const el = document.getElementById('shopContent');
+      el.innerHTML = loadingHtml();
+      const data = await apiFetch('/api/catalog');
+      if (!data.ok) { el.innerHTML = emptyState('shop', 'Магазин недоступен'); return; }
+      let html = '';
+      for (const cat of data.categories) {
+        html += `<button class="shop-cat" onclick="toggleShopCat(${cat.id})">${iconBox('package')}<span>${cat.name}</span></button>`;
+        html += `<div id="shop-cat-${cat.id}" style="display:none;padding-left:8px">`;
+        for (const sub of cat.subcategories) {
+          html += `<div style="margin:8px 0;font-weight:700;color:var(--muted)">${sub.name}</div>`;
+          for (const p of sub.products) {
+            html += `<button class="shop-item" onclick="openShopProduct(${p.id},'${p.name.replace(/'/g,"")}',${p.price})">${p.name} — ${p.price}₽</button>`;
+          }
+        }
+        for (const p of cat.products) {
+          html += `<button class="shop-item" onclick="openShopProduct(${p.id},'${p.name.replace(/'/g,"")}',${p.price})">${p.name} — ${p.price}₽</button>`;
+        }
+        html += '</div>';
+      }
+      el.innerHTML = html || emptyState('shop', 'Товаров нет');
+    }
+
+    function toggleShopCat(id) {
+      const el = document.getElementById('shop-cat-' + id);
+      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function showProductActions(id, name, price) {
+      showPage('shop');
+      const el = document.getElementById('shopContent');
+      el.innerHTML = `
+        <div class="glass-card">
+          <div style="font-weight:800;font-size:16px;margin-bottom:8px">${name}</div>
+          <div style="color:var(--muted);margin-bottom:16px">${price} ₽</div>
+          <button class="btn" onclick="buyShopProduct(${id})">🛒 Купить</button>
+          <button class="btn btn-glass" onclick="startReceipt(${id}, ${price})">🧾 Создать чек</button>
+          <button class="btn btn-glass" onclick="loadShop()">← Назад к каталогу</button>
+        </div>
+      `;
+    }
+
+    async function buyShopProduct(id) {
+      const method = confirm('Оплатить через СБП? (OK — СБП, Отмена — Крипто)') ? 'platega_sbp' : 'platega_crypto';
+      const data = await apiFetch('/api/purchase/platega', { product_id: id, method });
+      if (data.ok && data.pay_url) {
+        if (tg?.openLink) tg.openLink(data.pay_url);
+        else window.open(data.pay_url, '_blank');
+      } else alert('Не удалось создать оплату');
+    }
+
+    async function startReceipt(productId, price) {
+      const name = prompt('Введите уникальное название чека:');
+      if (!name) return;
+      const created = await apiFetch('/api/receipt/create', { product_id: productId, name });
+      if (!created.ok) {
+        alert(created.error === 'name_taken' ? 'Такое название уже занято' : 'Ошибка создания чека');
+        return;
+      }
+      const payMethod = confirm('Оплатить с баланса? (OK — баланс, Отмена — СБП Platega)') ? 'balance' : 'platega_sbp';
+      const paid = await apiFetch('/api/receipt/pay', { receipt_id: created.receipt_id, method: payMethod });
+      if (paid.ok && paid.pay_url) {
+        if (tg?.openLink) tg.openLink(paid.pay_url);
+        else window.open(paid.pay_url, '_blank');
+        alert('После оплаты активируйте чек в профиле → Активировать чек');
+      } else if (paid.ok && paid.paid) {
+        alert('Чек оплачен! Активируйте его в профиле.');
+      } else {
+        alert(paid.error === 'insufficient_balance' ? 'Недостаточно средств на балансе' : 'Ошибка оплаты');
+      }
+    }
+
+    async function openShopProduct(id, name, price) {
+      showProductActions(id, name, price);
+    }
+
+    async function submitTicket() {
+      const text = document.getElementById('ticketText').value.trim();
+      if (!text) return;
+      const data = await apiFetch('/api/ticket/create', { text });
+      if (data.ok) {
+        document.getElementById('ticketText').value = '';
+        alert('Тикет отправлен!');
+        loadTicketHistory();
+      }
+    }
+
+    async function loadTicketHistory() {
+      const data = await apiFetch('/api/ticket/list');
+      const el = document.getElementById('ticketHistory');
+      if (!data.ok || !data.tickets?.length) { el.innerHTML = ''; return; }
+      el.innerHTML = data.tickets.map(t => `<div class="history-item"><div class="history-meta"><div class="history-title">#${t.id} · ${t.status}</div><div class="history-sub">${t.last_message?.slice(0,80)}</div></div></div>`).join('');
+    }
+
+    async function openUserProfile(tid) {
+      showPage('user-profile');
+      const el = document.getElementById('publicProfile');
+      el.innerHTML = loadingHtml();
+      const data = await apiFetch('/api/user/' + tid);
+      if (!data.ok) { el.innerHTML = emptyState('user', 'Профиль не найден'); return; }
+      const u = data.user;
+      el.innerHTML = `
+        <div class="profile-wrap">
+          ${avatarHtml({ telegram_id: u.telegram_id, username: u.username, avatar_url: avatarUrl(u) }, 'xl')}
+          <div class="profile-name">${u.username ? '@'+u.username : 'ID'+u.telegram_id}</div>
+          <div class="profile-chip">Баланс: ${u.balance?.toFixed(2)} ₽</div>
+          <div class="profile-chip muted">Покупок: ${u.purchases_count} · В боте ${u.days_in_bot} дн.</div>
+        </div>
+        <div class="divider"></div>
+        <div id="profileComments">${(data.comments||[]).map(c=>`<div class="review-item">${c.text}</div>`).join('')||'<div class="hint">Комментариев пока нет</div>'}</div>
+        <textarea id="profileCommentText" placeholder="Оставить комментарий..." style="width:100%;min-height:80px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;padding:12px;font-family:inherit;margin-top:12px"></textarea>
+        <button class="btn btn-glass" onclick="addProfileComment(${tid})">Отправить</button>
+      `;
+    }
+
+    async function addProfileComment(tid) {
+      const text = document.getElementById('profileCommentText')?.value?.trim();
+      if (!text) return;
+      await apiFetch('/api/comment/add', { profile_telegram_id: tid, text });
+      openUserProfile(tid);
+    }
+
+    async function showUsersChart() {
+      showPage('users-chart');
+      const el = document.getElementById('usersChart');
+      el.innerHTML = loadingHtml();
+      const data = await apiFetch('/api/visits/chart');
+      if (!data.ok) return;
+      const max = Math.max(...data.chart.map(d => d.count), 1);
+      el.innerHTML = data.chart.map((d, i) =>
+        `<div class="chart-bar" style="height:${Math.max(8, d.count/max*100)}%;animation-delay:${i*0.03}s" title="${d.day}: ${d.count}"></div>`
+      ).join('');
+    }
+
+    function showDaysInfo() {
+      alert('Работаю я в этой сфере с 2020, но брал паузу и вот начал заново');
+    }
+
+    async function showReferralInfo() {
+      showPage('referral');
+      const el = document.getElementById('referralInfo');
+      const data = await apiFetch('/api/stats/extra');
+      const link = botInfo.username ? `https://t.me/${botInfo.username}?start=ref_${tgUser?.id}` : '';
+      el.innerHTML = `<p class="hint">Ваша реферальная ссылка:</p><code style="word-break:break-all">${link}</code><p style="margin-top:12px">Пришло: <b>${data.referrals||0}</b><br>Купили: <b>${data.referrals_bought||0}</b></p>`;
+    }
+
+    function closeRatingModal() {
+      document.getElementById('ratingModal').classList.remove('show');
+      localStorage.setItem('fresko_rated', '1');
+    }
+
+    function maybeShowRating() {
+      if (localStorage.getItem('fresko_rated')) return;
+      const stars = document.getElementById('ratingModalStars');
+      stars.innerHTML = [1,2,3,4,5].map(n => `<span onclick="rateBot(${n})" style="cursor:pointer;font-size:28px">${icon('star','ico-lg')}</span>`).join('');
+      document.getElementById('ratingModal').classList.add('show');
+    }
+
+    function rateBot(n) {
+      localStorage.setItem('fresko_bot_rating', String(n));
+      document.getElementById('botRatingScore').textContent = n.toFixed(1);
+      document.getElementById('botRatingStars').innerHTML = starsHtml(n, 'ico');
+      closeRatingModal();
+    }
+
+    async function loadExtraStats() {
+      const data = await apiFetch('/api/stats/extra');
+      if (!data.ok) return;
+      document.getElementById('statReferrals').textContent = data.referrals ?? 0;
+      document.getElementById('statDays').textContent = data.days_working ?? 0;
+      document.getElementById('statTickets').textContent = data.tickets_count ?? 0;
+      const rating = localStorage.getItem('fresko_bot_rating') || '5.0';
+      document.getElementById('botRatingScore').textContent = parseFloat(rating).toFixed(1);
+      document.getElementById('botRatingStars').innerHTML = starsHtml(Math.round(parseFloat(rating)), 'ico');
+    }
+
+    let freeKeySelectedProductId = 0;
+    let freeKeyQuestData = null;
+
+    async function loadFreeKeyButtonState() {
+      const btn = document.getElementById('btnFreeKey');
+      if (!btn) return;
+      const data = await apiFetch('/api/freekey/status');
+      if (!data.ok) return;
+      freeKeyQuestData = data.quest;
+      btn.classList.remove('btn-disabled-red');
+      if (!data.quest.enabled) {
+        btn.classList.add('btn-disabled-red');
+        btn.innerHTML = 'Получить ключ бесплатно <span style="font-size:11px;display:block;opacity:0.85">(выключено админом)</span>';
+        return;
+      }
+      btn.innerHTML = data.quest.completed && !data.quest.claimed
+        ? '🎁 Забрать бесплатный ключ'
+        : 'Получить ключ бесплатно';
+    }
+
+    function closeFreeKeyModal() {
+      document.getElementById('freeKeyModal').classList.remove('show');
+      freeKeySelectedProductId = 0;
+    }
+
+    async function claimFreeKey() {
+      if (!freeKeySelectedProductId) {
+        alert('Выберите товар из списка');
+        return;
+      }
+      const data = await apiFetch('/api/freekey/claim', { product_id: freeKeySelectedProductId });
+      if (data.ok) {
+        alert('Товар выдан! Проверьте личные сообщения бота.');
+        closeFreeKeyModal();
+        loadFreeKeyButtonState();
+        return;
+      }
+      const errMap = {
+        not_completed: 'Сначала выполните все задания',
+        invalid_product: 'Товар недоступен или дороже 200₽',
+        out_of_stock: 'Товар закончился',
+        no_quest: 'Активных заданий нет',
+      };
+      alert(errMap[data.error] || 'Не удалось получить ключ');
+    }
+
+    async function showFreeKey() {
+      const data = await apiFetch('/api/freekey/status');
+      if (!data.ok) return;
+      freeKeyQuestData = data.quest;
+      const btn = document.getElementById('btnFreeKey');
+      if (!data.quest.enabled) {
+        btn.classList.add('btn-disabled-red');
+        alert('Функция выключена администратором бота.');
+        return;
+      }
+      btn.classList.remove('btn-disabled-red');
+      const expires = new Date(data.quest.expires_at).toLocaleDateString('ru');
+      document.getElementById('freeKeyModalDesc').textContent =
+        data.quest.claimed ? 'Награда уже получена.' : `Задания до ${expires}. Выполните все — выберите товар до 200₽.`;
+      document.getElementById('freeKeyTasks').innerHTML = (data.quest.tasks || []).map(t =>
+        `<div style="margin-bottom:6px">${t.done ? '✅' : '⬜'} ${t.label} <span style="color:var(--muted)">(${t.current}/${t.target})</span></div>`
+      ).join('');
+      const productsEl = document.getElementById('freeKeyProducts');
+      const claimBtn = document.getElementById('freeKeyClaimBtn');
+      productsEl.style.display = 'none';
+      claimBtn.style.display = 'none';
+      freeKeySelectedProductId = 0;
+      if (data.quest.completed && !data.quest.claimed) {
+        const prodData = await apiFetch('/api/freekey/products');
+        if (prodData.ok && prodData.products?.length) {
+          productsEl.style.display = 'block';
+          productsEl.innerHTML = '<div style="font-weight:700;margin-bottom:8px">Выберите товар:</div>' +
+            prodData.products.map(p => `
+              <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer">
+                <input type="radio" name="freeKeyProduct" value="${p.id}" onchange="freeKeySelectedProductId=${p.id}">
+                <span>${p.name} — <b>${p.price}₽</b></span>
+              </label>
+            `).join('');
+          claimBtn.style.display = 'block';
+          claimBtn.textContent = 'Получить выбранный товар';
+        } else {
+          productsEl.style.display = 'block';
+          productsEl.innerHTML = '<div style="color:var(--muted)">Нет доступных товаров до 200₽</div>';
+        }
+      }
+      document.getElementById('freeKeyModal').classList.add('show');
+    }
+
+    async function promptActivateReceipt() {
+      const name = prompt('Введите название чека:');
+      if (!name) return;
+      const data = await apiFetch('/api/receipt/activate', { name });
+      if (data.ok) alert('Чек активирован! Товар отправлен в личные сообщения бота.');
+      else alert('Чек не найден, не оплачен или уже активирован');
+    }
+
     async function init() {
       initBgFloat();
+      setupLoaderMarquee();
+      const params = new URLSearchParams(location.search);
+      if (params.get('page') === 'support') setTimeout(() => showPage('support'), 100);
       try {
         await loadBotInfo();
-        await Promise.all([loadRecentPurchases(), loadStats(), loadFileCategories(), loadProfile(), loadAllReviews()]);
+        await Promise.all([loadRecentPurchases(), loadStats(), loadFileCategories(), loadProfile(), loadAllReviews(), loadExtraStats()]);
+        await apiFetch('/api/visit');
+        loadTicketHistory();
       } finally {
         hideAppLoader();
+        maybeShowRating();
       }
     }
 
