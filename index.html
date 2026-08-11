@@ -652,7 +652,7 @@
     <button class="btn" id="btnReviews" onclick="showPage('reviews')"></button>
     <div class="divider"></div>
     <div class="stats-row">
-      <div class="stat-box clickable-stat" onclick="showUsersChart()"><div class="stat-num" id="statPurchases">—</div><div class="stat-label">Покупок</div></div>
+      <div class="stat-box"><div class="stat-num" id="statPurchases">—</div><div class="stat-label">Покупок</div></div>
       <div class="stat-box clickable-stat" onclick="showUsersChart()"><div class="stat-num" id="statUsers">—</div><div class="stat-label">Юзеров</div></div>
       <div class="stat-box"><div class="stat-num" id="statReviews">—</div><div class="stat-label">Отзывов</div></div>
     </div>
@@ -778,7 +778,7 @@
   </div>
 
   <div id="page-user-profile" class="page">
-    <button class="btn btn-glass btn-back" onclick="history.back()">← Назад</button>
+    <button class="btn btn-glass btn-back" onclick="closeUserProfile()">← Назад</button>
     <div id="publicProfile"></div>
   </div>
 
@@ -797,7 +797,7 @@
     <div class="modal-sheet">
       <lottie-player class="modal-lottie" src="https://assets2.lottiefiles.com/packages/lf20_jbrwj3f0.json" background="transparent" speed="1" loop autoplay></lottie-player>
       <div class="modal-title">📅 Дней работы</div>
-      <div class="modal-desc" id="daysModalText">Работаю в этой сфере с 2020 года. Брал паузу — и вот снова в деле!</div>
+      <div class="modal-desc" id="daysModalText">Работаю в этой сфере с 2020. Перезапуск с <b>9 мая 2026</b> — таймер ниже показывает дни и часы с этой даты.</div>
       <div style="font-size:36px;font-weight:800;margin:12px 0;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="daysModalNum">—</div>
       <button class="btn btn-glass" onclick="closeDaysModal()">Понятно</button>
     </div>
@@ -867,7 +867,31 @@
     const DEFAULT_STORE_AVATAR = 'https://i.postimg.cc/sx9fLX9V/photo-2026-08-06-11-50-26.jpg';
     const DEFAULT_USER_AVATAR = 'https://i.postimg.cc/2j4XtvvK/1dece2c8357bdd7cee3b15036344faf5.jpg';
     let API_URL = 'http://127.0.0.1:8080';
-    let pendingReceiptId = 0;
+    let profileReturnPage = 'home';
+    const WORK_START_MS = new Date('2026-05-09T00:00:00+03:00').getTime();
+    let workTimerInterval = null;
+
+    function formatWorkTimer() {
+      const diff = Date.now() - WORK_START_MS;
+      if (diff < 0) return '0 дн. 0 ч.';
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      return `${days} дн. ${hours} ч.`;
+    }
+
+    function updateWorkTimer() {
+      const text = formatWorkTimer();
+      const el = document.getElementById('statDays');
+      if (el) el.textContent = text;
+      const modalEl = document.getElementById('daysModalNum');
+      if (modalEl) modalEl.textContent = text;
+    }
+
+    function startWorkTimer() {
+      updateWorkTimer();
+      if (workTimerInterval) clearInterval(workTimerInterval);
+      workTimerInterval = setInterval(updateWorkTimer, 60000);
+    }
     let pendingReceiptPrice = 0;
 
     function btnSpinnerHtml() {
@@ -963,7 +987,7 @@
 
     // Static UI labels
     document.getElementById('headerPill').innerHTML =
-      icon('tap', 'ico ico-sm ico-tap') + icon('shop', 'ico ico-sm') + '<span>Магазин</span>';
+      icon('tap', 'ico ico-sm ico-tap') + '<span>Магазин</span>';
     document.getElementById('titleRecent').innerHTML = iconBox('cart') + '<span>Недавно купили</span>';
     document.getElementById('titleDownloads').innerHTML = iconBox('download', 'purple') + '<span>Скачивания в боте</span>';
     document.getElementById('titleRatingDual').innerHTML = iconBox('star', 'gold') + '<span>Рейтинг магазина</span>';
@@ -1054,11 +1078,11 @@
       return DEFAULT_USER_AVATAR;
     }
 
-    function avatarHtml(user, sizeClass = '', clickable = false) {
+    function avatarHtml(user, sizeClass = '', clickable = false, fromPage = 'home') {
       const url = avatarUrl(user);
       const cls = 'avatar' + (sizeClass ? ' ' + sizeClass : '');
-      const tid = user.telegram_id || user.id;
-      const click = clickable && tid ? ` onclick="openUserProfile(${tid})" style="cursor:pointer"` : '';
+      const tid = user.telegram_id;
+      const click = clickable && tid ? ` onclick="openUserProfile(${tid}, '${fromPage}')" style="cursor:pointer"` : '';
       return `<div class="${cls}"${click}><img src="${url}" alt="" onerror="this.onerror=null;this.src='${DEFAULT_USER_AVATAR}'"></div>`;
     }
 
@@ -1131,7 +1155,7 @@
         <div class="recent-carousel">
           ${recentCarouselItems.map((p, i) => `
             <div class="recent-slide${i === 0 ? ' active' : ''}">
-              ${avatarHtml(p, '', true)}
+              ${avatarHtml(p, '', true, 'home')}
               <div class="recent-info">
                 <div class="recent-name">${userLabel(p)}</div>
                 <div class="recent-product">${purchaseLabel(p)}</div>
@@ -1208,7 +1232,7 @@
         const name = b.username ? '@'+b.username : 'ID'+b.telegram_id;
         const sizeCls = cls === 'first' ? 'xl' : 'lg';
         return `<div class="podium-item ${cls}">
-          ${avatarHtml(b, sizeCls, true)}
+          ${avatarHtml(b, sizeCls, true, 'top')}
           <div class="podium-name">${name}</div>
           <div class="podium-stats">${b.count} шт · ${Math.round(b.sum)}₽</div>
           <div class="podium-bar">${places[idx]}</div>
@@ -1217,7 +1241,7 @@
       listEl.innerHTML = buyers.slice(3, 25).map((b, i) => `
         <div class="top-list-item" style="animation-delay:${i * 0.04}s">
           <span class="rank">${i + 4}</span>
-          ${avatarHtml(b, 'md', true)}
+          ${avatarHtml(b, 'md', true, 'top')}
           <div style="flex:1;min-width:0">
             <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.username ? '@'+b.username : 'ID'+b.telegram_id}</div>
             <div style="font-size:12px;color:var(--muted)">${b.count} покупок · ${Math.round(b.sum)}₽</div>
@@ -1413,11 +1437,34 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ initData: tg?.initData || '', ...body }),
         });
-        if (!res.ok) return { ok: false, error: 'network', status: res.status };
-        return await res.json();
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok) return { ok: false, error: data.error || 'network', status: res.status, ...data };
+        return data;
       } catch (e) {
         return { ok: false, error: 'network' };
       }
+    }
+
+    function renderShopCategories(categories) {
+      let html = '';
+      for (const cat of categories) {
+        html += `<button class="shop-cat" onclick="toggleShopCat(${cat.id})">${iconBox('package')}<span>${cat.name}</span></button>`;
+        html += `<div id="shop-cat-${cat.id}" style="display:none;padding-left:8px">`;
+        for (const sub of (cat.subcategories || [])) {
+          html += `<div style="margin:8px 0;font-weight:700;color:var(--muted)">${sub.name}</div>`;
+          for (const p of (sub.products || [])) {
+            const safeName = String(p.name).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            html += `<button class="shop-item" onclick="openShopProduct(${p.id}, '${safeName}', ${p.price})">${p.name} — ${p.price}₽</button>`;
+          }
+        }
+        for (const p of (cat.products || [])) {
+          const safeName = String(p.name).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          html += `<button class="shop-item" onclick="openShopProduct(${p.id}, '${safeName}', ${p.price})">${p.name} — ${p.price}₽</button>`;
+        }
+        html += '</div>';
+      }
+      return html;
     }
 
     function setupLoaderMarquee() {
@@ -1449,23 +1496,21 @@
     async function loadShop() {
       const el = document.getElementById('shopContent');
       el.innerHTML = loadingHtml();
+      let categories = null;
       const data = await apiFetch('/api/catalog');
-      if (!data.ok) { el.innerHTML = emptyState('shop', 'Магазин недоступен'); return; }
-      let html = '';
-      for (const cat of data.categories) {
-        html += `<button class="shop-cat" onclick="toggleShopCat(${cat.id})">${iconBox('package')}<span>${cat.name}</span></button>`;
-        html += `<div id="shop-cat-${cat.id}" style="display:none;padding-left:8px">`;
-        for (const sub of cat.subcategories) {
-          html += `<div style="margin:8px 0;font-weight:700;color:var(--muted)">${sub.name}</div>`;
-          for (const p of sub.products) {
-            html += `<button class="shop-item" onclick="openShopProduct(${p.id},'${p.name.replace(/'/g,"")}',${p.price})">${p.name} — ${p.price}₽</button>`;
-          }
+      if (data.ok && data.categories) {
+        categories = data.categories;
+      } else {
+        const rows = await sbFetch('store_settings', 'key=eq.catalog&select=value');
+        if (rows[0]?.value?.categories?.length) {
+          categories = rows[0].value.categories;
         }
-        for (const p of cat.products) {
-          html += `<button class="shop-item" onclick="openShopProduct(${p.id},'${p.name.replace(/'/g,"")}',${p.price})">${p.name} — ${p.price}₽</button>`;
-        }
-        html += '</div>';
       }
+      if (!categories?.length) {
+        el.innerHTML = emptyState('shop', 'Магазин недоступен. Перезапустите бота для синхронизации каталога.');
+        return;
+      }
+      const html = renderShopCategories(categories);
       el.innerHTML = html || emptyState('shop', 'Товаров нет');
     }
 
@@ -1489,12 +1534,24 @@
     }
 
     async function buyShopProduct(id) {
-      const method = confirm('Оплатить через СБП? (OK — СБП, Отмена — Крипто)') ? 'platega_sbp' : 'platega_crypto';
+      const methodsData = await apiFetch('/api/payment/methods');
+      if (!methodsData.ok || !methodsData.methods?.length) {
+        alert('Способы оплаты недоступны');
+        return;
+      }
+      const platega = methodsData.methods.filter(m => m.id.startsWith('platega_'));
+      const method = platega.length
+        ? platega[0].id
+        : methodsData.methods.find(m => m.id === 'balance')?.id || methodsData.methods[0].id;
       const data = await apiFetch('/api/purchase/platega', { product_id: id, method });
       if (data.ok && data.pay_url) {
         if (tg?.openLink) tg.openLink(data.pay_url);
         else window.open(data.pay_url, '_blank');
-      } else alert('Не удалось создать оплату');
+      } else if (data.error === 'auth') {
+        alert('Откройте магазин через Telegram');
+      } else {
+        alert('Не удалось создать оплату');
+      }
     }
 
     async function startReceipt(productId, price) {
@@ -1570,7 +1627,14 @@
           alert('Тикет отправлен!');
           loadTicketHistory();
         } else {
-          alert('Не удалось отправить тикет');
+          const errMap = {
+            auth: 'Откройте поддержку через Telegram',
+            empty: 'Введите текст обращения',
+            user: 'Пользователь не найден',
+            server: 'Ошибка сервера при создании тикета',
+            network: 'Нет связи с сервером. Проверьте WEBAPP_API_URL',
+          };
+          alert(errMap[data.error] || 'Не удалось отправить тикет');
         }
       });
     }
@@ -1582,18 +1646,23 @@
       el.innerHTML = data.tickets.map(t => `<div class="history-item"><div class="history-meta"><div class="history-title">#${t.id} · ${t.status}</div><div class="history-sub">${t.last_message?.slice(0,80)}</div></div></div>`).join('');
     }
 
-    async function openUserProfile(tid) {
+    async function openUserProfile(tid, fromPage = 'home') {
+      if (!tid) return;
+      profileReturnPage = fromPage || 'home';
       showPage('user-profile');
       const el = document.getElementById('publicProfile');
       el.innerHTML = loadingHtml();
       const data = await apiFetch('/api/user/' + tid);
-      if (!data.ok) { el.innerHTML = emptyState('user', 'Профиль не найден'); return; }
+      if (!data.ok || !data.user) {
+        el.innerHTML = emptyState('user', 'Профиль не найден');
+        return;
+      }
       const u = data.user;
       el.innerHTML = `
         <div class="profile-wrap">
           ${avatarHtml({ telegram_id: u.telegram_id, username: u.username, avatar_url: avatarUrl(u) }, 'xl')}
           <div class="profile-name">${u.username ? '@'+u.username : 'ID'+u.telegram_id}</div>
-          <div class="profile-chip">Баланс: ${u.balance?.toFixed(2)} ₽</div>
+          <div class="profile-chip">Баланс: ${(u.balance ?? 0).toFixed(2)} ₽</div>
           <div class="profile-chip muted">Покупок: ${u.purchases_count} · В боте ${u.days_in_bot} дн.</div>
         </div>
         <div class="divider"></div>
@@ -1601,6 +1670,10 @@
         <textarea id="profileCommentText" placeholder="Оставить комментарий..." style="width:100%;min-height:80px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;padding:12px;font-family:inherit;margin-top:12px"></textarea>
         <button class="btn btn-glass" onclick="addProfileComment(${tid})">Отправить</button>
       `;
+    }
+
+    function closeUserProfile() {
+      showPage(profileReturnPage);
     }
 
     async function addProfileComment(tid) {
@@ -1623,7 +1696,7 @@
     }
 
     function showDaysInfo() {
-      document.getElementById('daysModalNum').textContent = document.getElementById('statDays').textContent;
+      updateWorkTimer();
       document.getElementById('daysModal').classList.add('show');
     }
 
@@ -1641,11 +1714,10 @@
 
     function closeRatingModal() {
       document.getElementById('ratingModal').classList.remove('show');
-      localStorage.setItem('fresko_rated', '1');
     }
 
     function maybeShowRating() {
-      if (localStorage.getItem('fresko_rated')) return;
+      if (localStorage.getItem('fresko_bot_rating')) return;
       const stars = document.getElementById('ratingModalStars');
       stars.innerHTML = [1,2,3,4,5].map(n => `<span onclick="rateBot(${n})" style="cursor:pointer;font-size:28px">${icon('star','ico-lg')}</span>`).join('');
       document.getElementById('ratingModal').classList.add('show');
@@ -1662,8 +1734,8 @@
       const data = await apiFetch('/api/stats/extra');
       if (!data.ok) return;
       document.getElementById('statReferrals').textContent = data.referrals ?? 0;
-      document.getElementById('statDays').textContent = data.days_working ?? 0;
       document.getElementById('statTickets').textContent = data.tickets_count ?? 0;
+      startWorkTimer();
       const rating = localStorage.getItem('fresko_bot_rating') || '5.0';
       document.getElementById('botRatingScore').textContent = parseFloat(rating).toFixed(1);
       document.getElementById('botRatingStars').innerHTML = starsHtml(Math.round(parseFloat(rating)), 'ico');
@@ -1827,6 +1899,7 @@
       if (params.get('page') === 'support') setTimeout(() => showPage('support'), 100);
       try {
         await loadBotInfo();
+        startWorkTimer();
         await Promise.all([loadRecentPurchases(), loadStats(), loadFileCategories(), loadProfile(), loadAllReviews(), loadExtraStats()]);
         await apiFetch('/api/visit');
         loadTicketHistory();
