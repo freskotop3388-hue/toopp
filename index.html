@@ -2312,8 +2312,33 @@
         const receipts = await sbFetch('store_receipts', `name=eq.${encodeURIComponent(name)}&select=*`);
         const rec = receipts[0];
         if (rec) {
-          if (rec.is_activated) { alert(errMap.already_used); return; }
+          if (rec.is_activated) {
+            closeReceiptActivateModal();
+            alert('Чек уже активирован! Товар отправлен в личные сообщения бота.');
+            return;
+          }
           if (!rec.is_paid) { alert(errMap.not_paid); return; }
+        }
+        const pending = await sbFetch(
+          'store_receipt_activations',
+          `receipt_name=eq.${encodeURIComponent(name)}&telegram_id=eq.${tgUser.id}&status=eq.pending&select=id&order=created_at.desc&limit=1`
+        );
+        if (pending[0]?.id) {
+          for (let i = 0; i < 15; i++) {
+            await sleep(1500);
+            const check = await sbFetch('store_receipt_activations', `id=eq.${pending[0].id}&select=status,error_code`);
+            const st = check[0];
+            if (!st) continue;
+            if (st.status === 'done') {
+              closeReceiptActivateModal();
+              alert('Чек активирован успешно! Товар отправлен в личные сообщения бота.');
+              return;
+            }
+            if (st.status === 'error' && st.error_code !== 'server') {
+              alert(errMap[st.error_code] || 'Не удалось активировать чек');
+              return;
+            }
+          }
         }
         const row = await sbPost('store_receipt_activations', {
           telegram_id: tgUser.id,
