@@ -1028,40 +1028,56 @@
       el.innerHTML = `${icon(iconName, 'ico')}<span>${text}</span>`;
     }
 
+    function setElHtml(id, html) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    }
+
     function emptyState(iconName, text) {
       return `<div class="empty-state">${iconBox(iconName)}<span>${text}</span></div>`;
     }
 
     // Static UI labels
-    document.getElementById('headerPill').innerHTML =
-      icon('tap', 'ico ico-sm ico-tap') + '<span>Магазин</span>';
-    document.getElementById('titleRecent').innerHTML = iconBox('cart') + '<span>Недавно купили</span>';
-    document.getElementById('titleDownloads').innerHTML = iconBox('download', 'purple') + '<span>Скачивания в боте</span>';
-    document.getElementById('titleRatingDual').innerHTML = iconBox('star', 'gold') + '<span>Рейтинг магазина</span>';
-    document.getElementById('headFiles').innerHTML = iconBox('files') + '<h2>Файлы</h2>';
-    document.getElementById('headTop').innerHTML = iconBox('trophy', 'gold') + '<h2>Топ покупателей</h2>';
-    document.getElementById('soonTitle').innerHTML = icon('book', 'ico ico-lg') + '<span>Soon</span>';
-    document.getElementById('modalTitle').innerHTML = icon('files', 'ico') + '<span>Файлы выданы</span>';
-    setBtnIcon('btnReviews', 'star', 'Посмотреть отзывы');
-    setBtnIcon('btnUserPurchases', 'cart', 'История покупок');
-    setBtnIcon('btnUserTransactions', 'wallet', 'История транзакций');
-    setBtnIcon('btnUserReviews', 'star', 'Твои отзывы');
-    setBtnIcon('btnUserDownloads', 'download', 'Скачанные файлы');
-    setBtnIcon('btnBackHome', 'chevronLeft', 'Назад');
-    setBtnIcon('btnBackProfile1', 'chevronLeft', 'Назад');
-    setBtnIcon('btnBackProfile2', 'chevronLeft', 'Назад');
-    setBtnIcon('btnBackProfile3', 'chevronLeft', 'Назад');
-    setBtnIcon('btnBackProfile4', 'chevronLeft', 'Назад');
-    setBtnIcon('btnBackPurchases', 'chevronLeft', 'Назад');
-    setBtnIcon('btnLeaveReview', 'star', 'Оставить отзыв');
-    setNavItem('nav-home', 'home', 'Главная');
-    setNavItem('nav-files', 'files', 'Файлы');
-    setNavItem('nav-instructions', 'book', 'Инструкция');
-    setNavItem('nav-profile', 'user', 'Профиль');
-    setNavItem('nav-top', 'trophy', 'Топ');
+    setElHtml('headerPill', icon('tap', 'ico ico-sm ico-tap') + '<span>Магазин</span><span class="header-pill-tip">Можно открыть магазин</span>');
+    setElHtml('titleRecent', iconBox('cart') + '<span>Недавно купили</span>');
+    setElHtml('titleDownloads', iconBox('download', 'purple') + '<span>Скачивания в боте</span>');
+    setElHtml('titleRatingDual', iconBox('star', 'gold') + '<span>Рейтинг магазина</span>');
+    setElHtml('headFiles', iconBox('files') + '<h2>Файлы</h2>');
+    setElHtml('headTop', iconBox('trophy', 'gold') + '<h2>Топ покупателей</h2>');
+    setElHtml('modalTitle', icon('files', 'ico') + '<span>Файлы выданы</span>');
+    try {
+      setElHtml('headerPill', icon('tap', 'ico ico-sm ico-tap') + '<span>Магазин</span><span class="header-pill-tip">Можно открыть магазин</span>');
+      setElHtml('titleRecent', iconBox('cart') + '<span>Недавно купили</span>');
+      setElHtml('titleDownloads', iconBox('download', 'purple') + '<span>Скачивания в боте</span>');
+      setElHtml('titleRatingDual', iconBox('star', 'gold') + '<span>Рейтинг магазина</span>');
+      setElHtml('headFiles', iconBox('files') + '<h2>Файлы</h2>');
+      setElHtml('headTop', iconBox('trophy', 'gold') + '<h2>Топ покупателей</h2>');
+      setElHtml('modalTitle', icon('files', 'ico') + '<span>Файлы выданы</span>');
+      setBtnIcon('btnReviews', 'star', 'Посмотреть отзывы');
+      setBtnIcon('btnUserPurchases', 'cart', 'История покупок');
+      setBtnIcon('btnUserTransactions', 'wallet', 'История транзакций');
+      setBtnIcon('btnUserReviews', 'star', 'Твои отзывы');
+      setBtnIcon('btnUserDownloads', 'download', 'Скачанные файлы');
+      setBtnIcon('btnBackHome', 'chevronLeft', 'Назад');
+      setBtnIcon('btnBackProfile1', 'chevronLeft', 'Назад');
+      setBtnIcon('btnBackProfile2', 'chevronLeft', 'Назад');
+      setBtnIcon('btnBackProfile3', 'chevronLeft', 'Назад');
+      setBtnIcon('btnBackProfile4', 'chevronLeft', 'Назад');
+      setBtnIcon('btnBackPurchases', 'chevronLeft', 'Назад');
+      setBtnIcon('btnLeaveReview', 'star', 'Оставить отзыв');
+      setNavItem('nav-home', 'home', 'Главная');
+      setNavItem('nav-files', 'files', 'Файлы');
+      setNavItem('nav-instructions', 'book', 'Инструкция');
+      setNavItem('nav-profile', 'user', 'Профиль');
+      setNavItem('nav-top', 'trophy', 'Топ');
+    } catch (e) {
+      console.error('ui labels', e);
+    }
 
     const tg = window.Telegram?.WebApp;
-    if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); }
+    try {
+      if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); }
+    } catch (e) {}
 
     const tgUser = tg?.initDataUnsafe?.user;
     let botInfo = { username: '', name: 'Fresko Store', avatar_url: null, admin_ids: [] };
@@ -1078,14 +1094,23 @@
       const el = document.getElementById(id);
       if (el) el.innerHTML = loadingHtml();
     });
-    document.getElementById('mainLoaderLottie').src = LOADER_LOTTIE;
+    const loaderLottie = document.getElementById('mainLoaderLottie');
+    if (loaderLottie) loaderLottie.src = LOADER_LOTTIE;
 
     async function sbFetch(table, query = '') {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-      });
-      if (!res.ok) return [];
-      return res.json();
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+          signal: ctrl.signal,
+        });
+        clearTimeout(t);
+        if (!res.ok) return [];
+        return await res.json();
+      } catch (e) {
+        return [];
+      }
     }
 
     async function sbPost(table, row) {
@@ -1239,6 +1264,8 @@
 
     function hideAppLoader() {
       const loader = document.getElementById('app-loader');
+      if (!loader || loader.dataset.hidden === '1') return;
+      loader.dataset.hidden = '1';
       loader.classList.add('hidden');
       setTimeout(() => { loader.style.display = 'none'; }, 400);
     }
@@ -2062,10 +2089,14 @@
     }
 
     function maybeShowRating() {
-      if (localStorage.getItem('fresko_bot_rating')) return;
-      const stars = document.getElementById('ratingModalStars');
-      stars.innerHTML = [1,2,3,4,5].map(n => `<span onclick="rateBot(${n})" style="cursor:pointer;font-size:28px">${icon('star','ico-lg')}</span>`).join('');
-      document.getElementById('ratingModal').classList.add('show');
+      try {
+        if (localStorage.getItem('fresko_bot_rating')) return;
+        const stars = document.getElementById('ratingModalStars');
+        const modal = document.getElementById('ratingModal');
+        if (!stars || !modal) return;
+        stars.innerHTML = [1,2,3,4,5].map(n => `<span onclick="rateBot(${n})" style="cursor:pointer;font-size:28px">${icon('star','ico-lg')}</span>`).join('');
+        modal.classList.add('show');
+      } catch (e) {}
     }
 
     function rateBot(n) {
@@ -2143,14 +2174,26 @@
       setupLoaderMarquee();
       const params = new URLSearchParams(location.search);
       const page = params.get('page');
+      const failSafe = setTimeout(hideAppLoader, 6000);
       try {
         await loadBotInfo();
         startWorkTimer();
-        await Promise.all([loadRecentPurchases(), loadStats(), loadFileCategories(), loadProfile(), loadAllReviews(), loadExtraStats(), loadInstructions()]);
-        await recordMiniAppVisit();
+        await Promise.all([
+          loadRecentPurchases(),
+          loadStats(),
+          loadFileCategories(),
+          loadProfile(),
+          loadAllReviews(),
+          loadExtraStats(),
+          loadInstructions(),
+        ]);
+        recordMiniAppVisit();
         loadTicketHistory();
         setupSupportAdminLink();
+      } catch (e) {
+        console.error('init failed', e);
       } finally {
+        clearTimeout(failSafe);
         hideAppLoader();
         maybeShowRating();
         if (page === 'support') showPage('support');
@@ -2158,7 +2201,7 @@
       }
     }
 
-    init();
+    try { init(); } catch (e) { hideAppLoader(); }
   </script>
 </body>
 </html>
