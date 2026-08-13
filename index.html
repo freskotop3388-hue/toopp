@@ -333,6 +333,19 @@
       z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s;
     }
     .toast.show { opacity: 1; }
+    .ticket-status {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 8px; text-transform: uppercase;
+    }
+    .ticket-status.open { background: rgba(52,199,89,0.18); color: #34c759; }
+    .ticket-status.closed { background: rgba(142,142,147,0.2); color: #8e8e93; }
+    .receipt-badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 8px; margin-top: 4px;
+    }
+    .receipt-badge.paid { background: rgba(0,152,234,0.18); color: #0098EA; }
+    .receipt-badge.done { background: rgba(52,199,89,0.18); color: #34c759; }
+    .receipt-badge.wait { background: rgba(255,215,0,0.15); color: #FFD700; }
 
     .hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin-bottom: 16px; padding: 0 4px; }
 
@@ -1129,6 +1142,33 @@
       return Array.isArray(data) ? data[0] : data;
     }
 
+    async function sbCount(table, query = '') {
+      try {
+        const q = query ? query + '&' : '';
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${q}select=id`, {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            Prefer: 'count=exact',
+            Range: '0-0',
+          },
+        });
+        const cr = res.headers.get('content-range') || '';
+        if (cr.includes('/')) {
+          const n = parseInt(cr.split('/')[1], 10);
+          if (!Number.isNaN(n)) return n;
+        }
+        const rows = await sbFetch(table, query ? query + '&select=id' : 'select=id');
+        return rows.length;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
     async function sbPatch(table, query, row) {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
         method: 'PATCH',
@@ -1326,9 +1366,17 @@
       ]);
       topDisplayOverrides = topRows[0]?.value?.overrides || {};
       const s = statsRows[0]?.value || {};
-      animateNumber('statPurchases', s.purchases_count ?? 0);
-      animateNumber('statUsers', s.users_count ?? 0);
-      animateNumber('statReviews', s.reviews_count ?? 0);
+      const [pCount, uCount, rCount, tCount] = await Promise.all([
+        sbCount('store_purchases'),
+        sbCount('store_users'),
+        sbCount('store_reviews'),
+        sbCount('store_support_tickets'),
+      ]);
+      animateNumber('statPurchases', Math.max(s.purchases_count ?? 0, pCount));
+      animateNumber('statUsers', Math.max(s.users_count ?? 0, uCount));
+      animateNumber('statReviews', Math.max(s.reviews_count ?? 0, rCount));
+      const ticketsEl = document.getElementById('statTickets');
+      if (ticketsEl) ticketsEl.textContent = Math.max(s.tickets_count ?? 0, tCount);
       animateNumber('onlineToday', s.online_today ?? 0);
       animateNumber('onlineNow', s.online_now ?? 0);
       animateNumber('downloadsTotal', s.downloads_total ?? 0);
@@ -1489,17 +1537,45 @@
       if (!tgUser) { el.innerHTML = emptyState('user', 'Нужен Telegram'); return; }
       el.innerHTML = loadingHtml();
       const items = await sbFetch('store_purchases', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=50&select=*`);
-      if (!items.length) { el.innerHTML = emptyState('cart', 'Покупок пока нет'); return; }
-      el.innerHTML = items.map(p => `
+      const receipts = await sbFetch('store_receipts', `telegram_id=eq.${tgUser.id}&order=created_at.desc&limit=50&select=*`);
+      const purchaseIds = new Set(items.map(p => p.purchase_id));
+      let html = '';
+      if (items.length) {
+        html += items.map(p => {
+          const rec = p.receipt_name || p.payment_method === 'receipt';
+          return `
         <div class="history-item" onclick="showPurchaseDetail(${p.purchase_id})">
           <span class="ico-box">${icon('package')}</span>
           <div class="history-meta">
             <div class="history-title">${purchaseLabel(p)}</div>
-            <div class="history-sub">Заказ #${p.order_number || p.purchase_id} · ${timeAgo(p.created_at)}</div>
+            <div class="history-sub">Заказ #${p.order_number || p.purchase_id} · ${timeAgo(p.created_at)}${rec ? ' · чек' : ''}</div>
+            ${p.receipt_name ? `<span class="receipt-badge done">Чек «${p.receipt_name}» активирован</span>` : ''}
           </div>
           <div class="history-price">${(p.price ?? 0).toFixed(0)}₽</div>
-        </div>
-      `).join('');
+        </div>`;
+        }).join('');
+      }
+      const extraReceipts = receipts.filter(r => !r.purchase_id || !purchaseIds.has(r.purchase_id));
+      if (extraReceipts.length) {
+        html += extraReceipts.map(r => {
+          let badge = 'wait';
+          let label = 'Создан, не оплачен';
+          if (r.is_activated) { badge = 'done'; label = 'Активирован'; }
+          else if (r.is_paid) { badge = 'paid'; label = 'Оплачен, не активирован'; }
+          return `
+        <div class="history-item" onclick="showReceiptDetail(${r.receipt_id})">
+          <span class="ico-box">${icon('receipt')}</span>
+          <div class="history-meta">
+            <div class="history-title">Чек «${r.name}»</div>
+            <div class="history-sub">${r.product_name || 'Товар'} · ${timeAgo(r.created_at)}</div>
+            <span class="receipt-badge ${badge}">${label}</span>
+          </div>
+          <div class="history-price">${(r.price ?? 0).toFixed(0)}₽</div>
+        </div>`;
+        }).join('');
+      }
+      if (!html) { el.innerHTML = emptyState('cart', 'Покупок пока нет'); return; }
+      el.innerHTML = html;
     }
 
     function showPurchaseDetail(purchaseId) {
@@ -1518,16 +1594,52 @@
         }
         selectedPurchase = p;
         const reviewed = p.review_left === true || p.review_left === 'true';
+        reviewBtn.onclick = () => openReviewForSelected();
+        reviewBtn.innerHTML = icon('star', 'ico') + '<span>Оставить отзыв</span>';
         card.innerHTML = `
           <div class="purchase-detail-row"><span>Товар</span><span style="text-align:right;font-weight:600">${p.product_name || '—'}</span></div>
           ${p.subcategory_name ? `<div class="purchase-detail-row"><span>Категория</span><span style="text-align:right">${p.subcategory_name}</span></div>` : ''}
           <div class="purchase-detail-row"><span>Заказ</span><span>#${p.order_number || p.purchase_id}</span></div>
           <div class="purchase-detail-row"><span>Сумма</span><span style="font-weight:700;color:var(--accent2)">${(p.price ?? 0).toFixed(2)} ₽</span></div>
           <div class="purchase-detail-row"><span>Дата</span><span>${formatDate(p.created_at)}</span></div>
+          ${p.receipt_name || p.payment_method === 'receipt' ? `<div class="purchase-detail-row"><span>Чек</span><span>${p.receipt_name ? '«'+p.receipt_name+'» · активирован' : 'активация чека'}</span></div>` : ''}
+          ${p.payment_method ? `<div class="purchase-detail-row"><span>Оплата</span><span>${p.payment_method}</span></div>` : ''}
           <div class="purchase-detail-row"><span>Отзыв</span><span class="badge-review${reviewed ? '' : ' pending'}">${reviewed ? 'Оставлен' : 'Можно оставить'}</span></div>
         `;
         reviewBtn.style.display = reviewed ? 'none' : 'flex';
       });
+    }
+
+    async function showReceiptDetail(receiptId) {
+      showPage('purchase-detail');
+      const card = document.getElementById('purchaseDetailCard');
+      const reviewBtn = document.getElementById('btnLeaveReview');
+      card.innerHTML = loadingHtml();
+      reviewBtn.style.display = 'none';
+      selectedPurchase = null;
+      const items = await sbFetch('store_receipts', `receipt_id=eq.${receiptId}&select=*`);
+      const r = items[0];
+      if (!r) {
+        card.innerHTML = emptyState('receipt', 'Чек не найден');
+        return;
+      }
+      let status = 'Создан, ожидает оплаты';
+      if (r.is_activated) status = 'Активирован';
+      else if (r.is_paid) status = 'Оплачен, можно активировать в профиле';
+      card.innerHTML = `
+        <div class="purchase-detail-row"><span>Чек</span><span style="font-weight:700">«${r.name}»</span></div>
+        <div class="purchase-detail-row"><span>Товар</span><span style="text-align:right;font-weight:600">${r.product_name || '—'}</span></div>
+        <div class="purchase-detail-row"><span>Сумма</span><span style="font-weight:700;color:var(--accent2)">${(r.price ?? 0).toFixed(2)} ₽</span></div>
+        <div class="purchase-detail-row"><span>Статус</span><span>${status}</span></div>
+        <div class="purchase-detail-row"><span>Создан</span><span>${formatDate(r.created_at)}</span></div>
+        ${r.activated_at ? `<div class="purchase-detail-row"><span>Активирован</span><span>${formatDate(r.activated_at)}</span></div>` : ''}
+        ${r.purchase_id ? `<div class="purchase-detail-row"><span>Заказ</span><span>#${r.purchase_id}</span></div>` : ''}
+      `;
+      if (r.is_paid && !r.is_activated) {
+        reviewBtn.style.display = 'flex';
+        reviewBtn.innerHTML = icon('receipt', 'ico') + '<span>Активировать чек</span>';
+        reviewBtn.onclick = () => promptActivateReceipt(null, r.name || '');
+      }
     }
 
     function openReviewForSelected() {
@@ -1600,11 +1712,15 @@
 
     async function apiFetch(path, body = {}) {
       try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
         const res = await fetch(API_URL + path, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ initData: tg?.initData || '', ...body }),
+          signal: ctrl.signal,
         });
+        clearTimeout(t);
         let data = {};
         try { data = await res.json(); } catch (_) {}
         if (!res.ok) return { ok: false, error: data.error || 'network', status: res.status, ...data };
@@ -1842,6 +1958,7 @@
         document.getElementById('ticketText').value = '';
         alert('Тикет отправлен! Ответ придёт в бот.');
         loadTicketHistory();
+        refreshTicketCounter();
       });
     }
 
@@ -1877,8 +1994,9 @@
         const msgs = await sbFetch('store_support_ticket_messages', `ticket_id=eq.${t.id}&order=created_at.desc&limit=1&select=text`);
         const last = msgs[0]?.text || '—';
         const st = t.status === 'closed' ? 'закрыт' : 'открыт';
+        const stClass = t.status === 'closed' ? 'closed' : 'open';
         const botId = t.bot_ticket_id ? ` · bot #${t.bot_ticket_id}` : '';
-        return `<div class="history-item" style="cursor:pointer" onclick="openTicketDetail(${t.id})"><div class="history-meta"><div class="history-title">#${t.id}${botId} · ${st}</div><div class="history-sub">${last.slice(0, 80)}</div></div></div>`;
+        return `<div class="history-item" style="cursor:pointer" onclick="openTicketDetail(${t.id})"><div class="history-meta"><div class="history-title">#${t.id}${botId} · <span class="ticket-status ${stClass}">${st}</span></div><div class="history-sub">${last.slice(0, 80)}</div></div></div>`;
       }));
       el.innerHTML = parts.join('');
     }
@@ -1891,15 +2009,14 @@
         sbFetch('store_support_tickets', `id=eq.${ticketId}&select=status`),
         sbFetch('store_support_ticket_messages', `ticket_id=eq.${ticketId}&order=created_at.asc&select=sender_type,text,created_at`),
       ]);
+      const closed = (ticketRows[0]?.status || 'open') === 'closed';
+      document.getElementById('ticketDetailTitle').innerHTML = 'Тикет #' + ticketId + ' · <span class="ticket-status ' + (closed ? 'closed' : 'open') + '">' + (closed ? 'закрыт' : 'открыт') + '</span>';
       renderTicketMessages(msgs, 'ticketMessages');
-      const closed = ticketRows[0]?.status === 'closed';
       document.getElementById('ticketReplyText').style.display = closed ? 'none' : 'block';
       document.getElementById('btnTicketReply').style.display = closed ? 'none' : 'block';
       if (closed) {
-        const hint = document.createElement('div');
-        hint.className = 'hint';
-        hint.textContent = 'Тикет закрыт. Создайте новый, если нужна помощь.';
-        document.getElementById('ticketMessages').appendChild(hint);
+        const box = document.getElementById('ticketMessages');
+        box.insertAdjacentHTML('beforeend', '<div class="hint">Тикет закрыт. Создайте новый, если нужна помощь.</div>');
       }
     }
 
@@ -1934,8 +2051,9 @@
       if (!tickets.length) { el.innerHTML = emptyState('message', 'Тикетов нет'); return; }
       el.innerHTML = tickets.map(t => {
         const st = t.status === 'closed' ? 'закрыт' : 'открыт';
+        const stClass = t.status === 'closed' ? 'closed' : 'open';
         const tag = t.username ? '@' + t.username : 'ID ' + t.telegram_id;
-        return `<button class="file-btn" onclick="openAdminTicket(${t.id})"><span style="flex:1;text-align:left">#${t.id} · ${tag} · ${st}${t.bot_ticket_id ? ' · bot #' + t.bot_ticket_id : ''}</span><span class="chevron">${icon('chevronRight','ico ico-sm')}</span></button>`;
+        return `<button class="file-btn" onclick="openAdminTicket(${t.id})"><span style="flex:1;text-align:left">#${t.id} · ${tag} · <span class="ticket-status ${stClass}">${st}</span>${t.bot_ticket_id ? ' · bot #' + t.bot_ticket_id : ''}</span><span class="chevron">${icon('chevronRight','ico ico-sm')}</span></button>`;
       }).join('');
     }
 
@@ -1949,11 +2067,16 @@
         sbFetch('store_support_ticket_messages', `ticket_id=eq.${ticketId}&order=created_at.asc&select=sender_type,text`),
       ]);
       const t = ticketRows[0] || {};
-      if (t.bot_ticket_id) document.getElementById('adminTicketTitle').textContent += ' · bot #' + t.bot_ticket_id;
-      renderTicketMessages(msgs, 'adminTicketMessages');
       const closed = t.status === 'closed';
+      let title = 'Тикет mini app #' + ticketId;
+      if (t.bot_ticket_id) title += ' · bot #' + t.bot_ticket_id;
+      document.getElementById('adminTicketTitle').innerHTML = title + ' · <span class="ticket-status ' + (closed ? 'closed' : 'open') + '">' + (closed ? 'закрыт' : 'открыт') + '</span>';
+      renderTicketMessages(msgs, 'adminTicketMessages');
       document.getElementById('adminTicketReply').style.display = closed ? 'none' : 'block';
-      document.querySelector('#page-admin-ticket-detail .btn').style.display = closed ? 'none' : 'block';
+      const replyBtn = document.querySelector('#page-admin-ticket-detail .btn');
+      if (replyBtn) replyBtn.style.display = closed ? 'none' : 'block';
+      const closeBtn = document.querySelector('#page-admin-ticket-detail .btn-glass');
+      if (closeBtn && closeBtn.textContent.includes('Закрыть')) closeBtn.style.display = closed ? 'none' : 'block';
     }
 
     async function adminReplyTicket(ev) {
@@ -1980,11 +2103,16 @@
     async function adminCloseTicket(ev) {
       if (!isAdmin() || !currentAdminTicketId) return;
       if (!confirm('Закрыть тикет?')) return;
-      await sbPatch('store_support_tickets', `id=eq.${currentAdminTicketId}`, {
+      const ok = await sbPatch('store_support_tickets', `id=eq.${currentAdminTicketId}`, {
         status: 'closed',
         updated_at: new Date().toISOString(),
       });
+      if (!ok) {
+        alert('Не удалось закрыть тикет. Выполните обновлённый supabase_schema.sql');
+        return;
+      }
       alert('Тикет закрыт');
+      refreshTicketCounter();
       showPage('admin-tickets');
       loadAdminTickets();
     }
@@ -2001,17 +2129,13 @@
         return;
       }
       const reviews = await sbFetch('store_reviews', `telegram_id=eq.${u.telegram_id}&order=created_at.desc&limit=20&select=rating,text,product_name,created_at`);
-      let commentsHtml = '';
-      let adminCommentBlock = '';
-      if (isAdmin()) {
-        const comments = await sbFetch('store_profile_comments', `profile_telegram_id=eq.${u.telegram_id}&order=created_at.desc&limit=30&select=author_username,text,created_at`);
-        commentsHtml = comments.length
-          ? comments.map(c => `<div class="pub-review"><div class="pub-review-body"><div class="pub-review-product">${c.author_username ? '@'+c.author_username : 'Админ'}</div>${c.text || ''}</div></div>`).join('')
-          : '<div class="hint">Комментариев пока нет</div>';
-        adminCommentBlock = `
+      const comments = await sbFetch('store_profile_comments', `profile_telegram_id=eq.${u.telegram_id}&order=created_at.desc&limit=30&select=author_username,text,created_at`);
+      const commentsHtml = comments.length
+        ? comments.map(c => `<div class="pub-review"><div class="pub-review-body"><div class="pub-review-product">${c.author_username ? '@'+c.author_username : 'Админ'}</div>${c.text || ''}</div></div>`).join('')
+        : '<div class="hint">Комментариев пока нет</div>';
+      const adminCommentBlock = isAdmin() ? `
           <textarea id="profileCommentText" placeholder="Комментарий администратора..." style="width:100%;min-height:70px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;padding:12px;font-family:inherit;margin-top:12px"></textarea>
-          <button class="btn btn-glass" onclick="addProfileComment(${u.telegram_id})">Отправить (админ)</button>`;
-      }
+          <button class="btn btn-glass" onclick="addProfileComment(${u.telegram_id})">Отправить (админ)</button>` : '';
       const purchases = u.purchases_count || 0;
       const displayName = u.username ? '@'+u.username : (u.first_name || 'ID'+u.telegram_id);
       el.innerHTML = `
@@ -2027,7 +2151,10 @@
         <div class="divider"></div>
         <div class="section-title">Отзывы (${reviews.length})</div>
         <div>${reviews.length ? reviews.map(r => `<div class="pub-review"><div class="pub-review-stars">${starsHtml(r.rating, 'ico-sm')}</div><div class="pub-review-body"><div class="pub-review-product">${r.product_name || 'Товар'}</div>${r.text || 'Без текста'}</div></div>`).join('') : '<div class="hint">Отзывов пока нет</div>'}</div>
-        ${isAdmin() ? `<div class="divider"></div><div class="section-title">Комментарии</div><div id="profileComments">${commentsHtml}</div>${adminCommentBlock}` : ''}
+        <div class="divider"></div>
+        <div class="section-title">Комментарии администратора</div>
+        <div id="profileComments">${commentsHtml}</div>
+        ${adminCommentBlock}
       `;
     }
 
@@ -2114,7 +2241,7 @@
       const s = statsRows[0]?.value || {};
       const u = userRows[0] || {};
       document.getElementById('statReferrals').textContent = u.referrals_count ?? 0;
-      document.getElementById('statTickets').textContent = s.tickets_count ?? 0;
+      await refreshTicketCounter(s.tickets_count);
       startWorkTimer();
       const rating = localStorage.getItem('fresko_bot_rating') || '5.0';
       document.getElementById('botRatingScore').textContent = parseFloat(rating).toFixed(1);
@@ -2133,10 +2260,18 @@
       }
     }
 
-    function promptActivateReceipt(ev) {
-      document.getElementById('receiptActivateInput').value = '';
+    async function refreshTicketCounter(fallback) {
+      const el = document.getElementById('statTickets');
+      if (!el) return;
+      const n = await sbCount('store_support_tickets');
+      el.textContent = Math.max(n, fallback ?? 0);
+    }
+
+    function promptActivateReceipt(ev, presetName) {
+      const input = document.getElementById('receiptActivateInput');
+      if (input) input.value = presetName || '';
       document.getElementById('receiptActivateModal').classList.add('show');
-      setTimeout(() => document.getElementById('receiptActivateInput')?.focus(), 200);
+      setTimeout(() => input?.focus(), 200);
     }
 
     function closeReceiptActivateModal() {
@@ -2150,22 +2285,62 @@
         alert('Введите название чека');
         return;
       }
+      if (!tgUser?.id) {
+        alert('Откройте mini app через Telegram');
+        return;
+      }
       await withLoading(btn, async () => {
-        const data = await apiFetch('/api/receipt/activate', { name });
-        if (data.ok) {
-          closeReceiptActivateModal();
-          alert('Чек активирован! Товар отправлен в личные сообщения бота.');
-          return;
-        }
         const errMap = {
           not_found: 'Чек не найден',
           not_paid: 'Чек ещё не оплачен',
           already_used: 'Чек уже активирован',
           out_of_stock: 'Товар закончился',
           product_unavailable: 'Товар недоступен',
+          params: 'Введите название чека',
           network: 'Ошибка связи с сервером',
         };
-        alert(errMap[data.error] || 'Не удалось активировать чек');
+        const apiData = await apiFetch('/api/receipt/activate', { name });
+        if (apiData.ok) {
+          closeReceiptActivateModal();
+          alert('Чек активирован! Товар отправлен в личные сообщения бота.');
+          return;
+        }
+        if (apiData.error && apiData.error !== 'network' && apiData.error !== 'auth') {
+          alert(errMap[apiData.error] || 'Не удалось активировать чек');
+          return;
+        }
+        const receipts = await sbFetch('store_receipts', `name=eq.${encodeURIComponent(name)}&select=*`);
+        const rec = receipts[0];
+        if (rec) {
+          if (rec.is_activated) { alert(errMap.already_used); return; }
+          if (!rec.is_paid) { alert(errMap.not_paid); return; }
+        }
+        const row = await sbPost('store_receipt_activations', {
+          telegram_id: tgUser.id,
+          username: tgUser.username || null,
+          receipt_name: name,
+          status: 'pending',
+        });
+        if (!row?.id) {
+          alert('Не удалось отправить запрос. Выполните supabase_schema.sql и перезапустите бота.');
+          return;
+        }
+        for (let i = 0; i < 20; i++) {
+          await sleep(1500);
+          const check = await sbFetch('store_receipt_activations', `id=eq.${row.id}&select=status,error_code`);
+          const st = check[0];
+          if (!st) continue;
+          if (st.status === 'done') {
+            closeReceiptActivateModal();
+            alert('Чек активирован успешно! Товар отправлен в личные сообщения бота.');
+            return;
+          }
+          if (st.status === 'error') {
+            alert(errMap[st.error_code] || 'Не удалось активировать чек');
+            return;
+          }
+        }
+        alert('Запрос принят. Если бот запущен, чек активируется в течение нескольких секунд — проверьте ЛС бота.');
       });
     }
 
