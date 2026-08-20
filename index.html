@@ -713,7 +713,7 @@
     <div class="stats-row" style="margin-top:10px">
       <div class="stat-box clickable-stat" onclick="showReferralInfo()"><div class="stat-num" id="statReferrals">—</div><div class="stat-label">Рефералов</div></div>
       <div class="stat-box clickable-stat" onclick="showDaysInfo()"><div class="stat-num" id="statDays">—</div><div class="stat-label">Дней работы</div></div>
-      <div class="stat-box clickable-stat" onclick="showPage('support')"><div class="stat-num" id="statTickets">—</div><div class="stat-label">Тикетов</div></div>
+      <div class="stat-box clickable-stat" onclick="showClosedTicketsInfo()"><div class="stat-num" id="statTickets">—</div><div class="stat-label">Закрыто тикетов</div></div>
     </div>
     <div class="glass-card rating-big" style="margin-top:14px">
       <div class="rating-dual-grid">
@@ -821,10 +821,11 @@
   <div id="page-support" class="page">
     <button class="btn btn-glass btn-back" onclick="showPage('home')">← Назад</button>
     <div class="page-head"><h2>Поддержка</h2></div>
-    <textarea id="ticketText" placeholder="Опишите проблему..." style="width:100%;min-height:120px;border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;padding:14px;font-family:inherit;margin-bottom:12px"></textarea>
-    <button class="btn" id="btnSubmitTicket" onclick="submitTicket(event)">Отправить тикет</button>
-    <div id="adminTicketLink" style="display:none;margin-top:8px"></div>
-    <div id="ticketHistory" style="margin-top:16px"></div>
+    <div class="glass-card" style="text-align:center;padding:24px">
+      <div class="stat-num" id="supportClosedCount">—</div>
+      <div class="stat-label" style="margin-top:8px">закрытых тикетов</div>
+      <p class="hint" style="margin-top:16px">Обращения принимаются только в боте. Откройте бота и нажмите «Поддержка».</p>
+    </div>
   </div>
 
   <div id="page-ticket-detail" class="page">
@@ -1370,7 +1371,7 @@
         sbCount('store_purchases'),
         sbCount('store_users'),
         sbCount('store_reviews'),
-        sbCount('store_support_tickets'),
+        sbCount('store_support_tickets', 'status=eq.closed'),
       ]);
       animateNumber('statPurchases', Math.max(s.purchases_count ?? 0, pCount));
       animateNumber('statUsers', Math.max(s.users_count ?? 0, uCount));
@@ -1542,14 +1543,17 @@
       let html = '';
       if (items.length) {
         html += items.map(p => {
-          const rec = p.receipt_name || p.payment_method === 'receipt';
+          const isReceipt = p.payment_method === 'receipt';
+          const badge = isReceipt
+            ? `<span class="receipt-badge done">Активация чека${p.receipt_name ? ' «'+p.receipt_name+'»' : ''}</span>`
+            : `<span class="receipt-badge paid">Покупка</span>`;
           return `
         <div class="history-item" onclick="showPurchaseDetail(${p.purchase_id})">
-          <span class="ico-box">${icon('package')}</span>
+          <span class="ico-box">${icon(isReceipt ? 'receipt' : 'package')}</span>
           <div class="history-meta">
             <div class="history-title">${purchaseLabel(p)}</div>
-            <div class="history-sub">Заказ #${p.order_number || p.purchase_id} · ${timeAgo(p.created_at)}${rec ? ' · чек' : ''}</div>
-            ${p.receipt_name ? `<span class="receipt-badge done">Чек «${p.receipt_name}» активирован</span>` : ''}
+            <div class="history-sub">Заказ #${p.order_number || p.purchase_id} · ${timeAgo(p.created_at)}</div>
+            ${badge}
           </div>
           <div class="history-price">${(p.price ?? 0).toFixed(0)}₽</div>
         </div>`;
@@ -1602,8 +1606,10 @@
           <div class="purchase-detail-row"><span>Заказ</span><span>#${p.order_number || p.purchase_id}</span></div>
           <div class="purchase-detail-row"><span>Сумма</span><span style="font-weight:700;color:var(--accent2)">${(p.price ?? 0).toFixed(2)} ₽</span></div>
           <div class="purchase-detail-row"><span>Дата</span><span>${formatDate(p.created_at)}</span></div>
-          ${p.receipt_name || p.payment_method === 'receipt' ? `<div class="purchase-detail-row"><span>Чек</span><span>${p.receipt_name ? '«'+p.receipt_name+'» · активирован' : 'активация чека'}</span></div>` : ''}
-          ${p.payment_method ? `<div class="purchase-detail-row"><span>Оплата</span><span>${p.payment_method}</span></div>` : ''}
+          ${p.payment_method === 'receipt'
+            ? `<div class="purchase-detail-row"><span>Тип</span><span>Активация чека${p.receipt_name ? ' «'+p.receipt_name+'»' : ''}</span></div>`
+            : `<div class="purchase-detail-row"><span>Тип</span><span>Покупка</span></div>`}
+          ${p.payment_method ? `<div class="purchase-detail-row"><span>Оплата</span><span>${p.payment_method === 'receipt' ? 'Чек' : p.payment_method}</span></div>` : ''}
           <div class="purchase-detail-row"><span>Отзыв</span><span class="badge-review${reviewed ? '' : ' pending'}">${reviewed ? 'Оставлен' : 'Можно оставить'}</span></div>
         `;
         reviewBtn.style.display = reviewed ? 'none' : 'flex';
@@ -2263,8 +2269,15 @@
     async function refreshTicketCounter(fallback) {
       const el = document.getElementById('statTickets');
       if (!el) return;
-      const n = await sbCount('store_support_tickets');
+      const n = await sbCount('store_support_tickets', 'status=eq.closed');
       el.textContent = Math.max(n, fallback ?? 0);
+      const supportEl = document.getElementById('supportClosedCount');
+      if (supportEl) supportEl.textContent = el.textContent;
+    }
+
+    function showClosedTicketsInfo() {
+      const n = document.getElementById('statTickets')?.textContent || '0';
+      alert(`Закрыто тикетов: ${n}\n\nНовые обращения создаются только в боте (кнопка «Поддержка»).`);
     }
 
     function promptActivateReceipt(ev, presetName) {
@@ -2388,16 +2401,17 @@
           loadInstructions(),
         ]);
         recordMiniAppVisit();
-        loadTicketHistory();
-        setupSupportAdminLink();
+        refreshTicketCounter();
       } catch (e) {
         console.error('init failed', e);
       } finally {
         clearTimeout(failSafe);
         hideAppLoader();
         maybeShowRating();
-        if (page === 'support') showPage('support');
-        else if (page === 'admin-tickets' && isAdmin()) { showPage('admin-tickets'); loadAdminTickets(); }
+        if (page === 'support') {
+          showPage('support');
+          refreshTicketCounter();
+        }
       }
     }
 
