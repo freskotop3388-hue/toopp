@@ -713,7 +713,7 @@
     <div class="stats-row" style="margin-top:10px">
       <div class="stat-box clickable-stat" onclick="showReferralInfo()"><div class="stat-num" id="statReferrals">—</div><div class="stat-label">Рефералов</div></div>
       <div class="stat-box clickable-stat" onclick="showDaysInfo()"><div class="stat-num" id="statDays">—</div><div class="stat-label">Дней работы</div></div>
-      <div class="stat-box clickable-stat" onclick="showClosedTicketsInfo()"><div class="stat-num" id="statTickets">—</div><div class="stat-label">Закрыто тикетов</div></div>
+      <div class="stat-box"><div class="stat-num" id="statTickets">—</div><div class="stat-label">Закрыто тикетов</div></div>
     </div>
     <div class="glass-card rating-big" style="margin-top:14px">
       <div class="rating-dual-grid">
@@ -2275,10 +2275,6 @@
       if (supportEl) supportEl.textContent = el.textContent;
     }
 
-    function showClosedTicketsInfo() {
-      const n = document.getElementById('statTickets')?.textContent || '0';
-      alert(`Закрыто тикетов: ${n}\n\nНовые обращения создаются только в боте (кнопка «Поддержка»).`);
-    }
 
     function promptActivateReceipt(ev, presetName) {
       const input = document.getElementById('receiptActivateInput');
@@ -2409,8 +2405,7 @@
         hideAppLoader();
         maybeShowRating();
         if (page === 'support') {
-          showPage('support');
-          refreshTicketCounter();
+          showPage('home');
         }
       }
     }
